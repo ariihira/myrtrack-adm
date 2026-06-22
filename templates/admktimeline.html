@@ -1,0 +1,152 @@
+{% extends "admbase.html" %}
+
+{% block title %}K-Timeline{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admktimeline.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="kt-container">
+    <header class="kt-header">
+        <div class="kt-title-area">
+            <h1>K-Timeline</h1>
+            <p>Chronological video archive organized by group participation.</p>
+        </div>
+
+        {# Clean Dropdown Filter #}
+        <div class="kt-filter-wrap">
+            <form id="group-filter-form" action="{{ url_for('ktimeline') }}" method="GET">
+                <div class="kt-dropdown">
+                    <button type="button" class="kt-drop-btn" id="group-toggle-btn">
+                        Filter Groups {% if selected_groups %}({{ selected_groups|length }}){% endif %}
+                    </button>
+                    <div class="kt-drop-menu" id="group-checklist">
+                        {% for group in all_groups %}
+                            <label class="kt-drop-item">
+                                <input type="checkbox" name="groups" value="{{ group.group_name or group[0] or group }}"
+                                        {% if (group.group_name or group[0] or group) in selected_groups %}checked{% endif %}>
+                                {{ group.group_name or group[0] or group }}
+                            </label>
+                        {% endfor %}
+                        <div class="kt-drop-actions">
+                            {% if selected_groups %}
+                                <a href="{{ url_for('ktimeline') }}" class="kt-clear-filter-btn" style="text-decoration:none; font-size:0.65rem; font-weight:800; color:#777; margin-right:10px; text-transform:uppercase;">Clear All</a>
+                            {% endif %}
+                            <button type="submit" class="kt-apply">Apply</button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </header>
+
+    {% if videos %}
+        <div class="kt-stream">
+            {% for item in videos %}
+                {# Month Separator Logic #}
+                {% set current_month = item.eventDate | format_date('%B %Y') %}
+                {% if loop.first or current_month != (videos[loop.index0 - 1].eventDate | format_date('%B %Y')) %}
+                    <h2 class="kt-month-divider">{{ current_month }}</h2>
+                {% endif %}
+
+                <article class="kt-card">
+                    <div class="kt-side-info">
+                        <span class="kt-date">{{ item.eventDate | format_date('%d.%m') }}</span>
+                        
+                        {# Status Tag Logic #}
+                        {% if item.is_host and item.var == 1 %}
+                            <span class="kt-tag tag-owner">HOST</span>
+                        {% endif %}
+
+                        {% if item.has_mc %}
+                            <span class="kt-tag tag-mc">MC</span>
+                        {% endif %}
+
+                        {% if item.guest_display and not item.is_host and not item.has_mc %}
+                            <span class="kt-tag tag-guest">GUEST</span>
+                        {% endif %}
+
+                        {# --- Title Extras Tag --- #}
+                        {% if item.ext %}
+                            <span class="kt-tag tag-extra">
+                                {{ item.ext | upper }}
+                            </span>
+                        {% endif %}
+                        
+                    </div>
+
+                    <div class="kt-main-info">
+                        <div class="kt-meta">
+                            <span class="kt-show">{{ item.show_titles | default('Independent', true) }}</span>
+                            <span class="kt-owning">
+                                {# Shows the result of the Host > MC > Guest > Owner hierarchy #}
+                                {{ item.display_group }}
+                            </span>
+                        </div>
+
+                        <h3 class="kt-video-title">
+                            {# --- SEASON LOGIC --- #}
+                            {% if item.season and item.season|int > 0 and item.season|int <= 1000 %}
+                                <span class="kt-ep">S{{ item.season }}</span>
+                            {% endif %}
+
+                            {# --- EPISODE LOGIC --- #}
+                            {% set ep_val = item.episodeNumber | string | trim %}
+                            {% if ep_val and ep_val != '-1' %}
+                                <span class="kt-ep">
+                                    {# Only prefix 'E' if it's a standard numeric episode #}
+                                    {% if ep_val is number or ep_val.isdigit() %}E{% endif %}{{ ep_val }}
+                                </span>
+                            {% endif %}
+    
+                            {{ item.title }}
+                        </h3>
+
+                        {% if item.guest_display %}
+                            <div class="kt-details">
+                                <span class="kt-label">FEATURING: {{ item.guest_display }}</span>
+                                <span class="kt-val"></span>
+                            </div>
+                        {% endif %}
+
+                        {% if item.has_mc %}
+                            <div class="kt-details">
+                                <span class="kt-label">
+                                    MC: 
+                                        {%- for mc in item.mc_names -%}
+                                            {% if mc.group %}{{ mc.group }} {% endif %}{{ mc.name }}{{ ", " if not loop.last }}
+                                        {%- endfor -%}
+                                </span>
+                                <span class="kt-val"></span>
+                            </div>
+                        {% endif %}
+
+                        {% if item.notes %}
+                            <div class="kt-details">
+                                <span class="kt-label">NOTES: {{ item.notes }}</span>
+                                <span class="kt-val"></span>
+                            </div>
+                        {% endif %}
+                    </div>
+                </article>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="kt-empty">No videos found for the selected criteria.</div>
+    {% endif %}
+</div>
+
+<script>
+    document.getElementById('group-toggle-btn').addEventListener('click', function() {
+        var menu = document.getElementById('group-checklist');
+        menu.style.display = (menu.style.display === 'block') ? 'none' : 'block';
+    });
+    window.addEventListener('click', function(e) {
+        if (!document.querySelector('.kt-dropdown').contains(e.target)) {
+            document.getElementById('group-checklist').style.display = 'none';
+        }
+    });
+</script>
+
+{% endblock %}

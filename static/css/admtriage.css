@@ -1,0 +1,249 @@
+.triage-header-main {
+    max-width: 1200px;
+    margin: 0 auto 20px;
+}
+
+.triage-header-main h2 { 
+    font-weight: 800; 
+    color: var(--text-primary); 
+    margin-bottom: 5px; 
+}
+.triage-header-main p { 
+    color: var(--text-muted); 
+    font-size: 0.9rem; 
+}
+
+.triage-filters {
+    max-width: 1200px;
+    margin: 0 auto 30px;
+    background: #fff;
+    padding: 15px 25px;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    box-shadow: var(--card-shadow);
+}
+
+.filter-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    animation: fadeIn 0.3s ease;
+}
+
+.filter-row:first-child:not(:only-child) { 
+    margin-bottom: 12px; 
+    padding-bottom: 12px; 
+    border-bottom: 1px solid var(--bg-main); 
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.filter-label {
+    font-size: 0.7rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    width: 65px;
+}
+
+.btn-filter {
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    background: #fff;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: var(--text-primary);
+}
+
+.btn-filter:hover { 
+    background: var(--bg-main); 
+    border-color: var(--accent-soft); 
+}
+
+.btn-filter.active {
+    background: var(--text-primary);
+    color: #fff;
+    border-color: var(--text-primary);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.wide-card-stack {
+    max-width: 1200px;
+    margin: 0 auto 120px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.triage-wide-card {
+    background: #ffffff;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    box-shadow: var(--card-shadow);
+    display: flex;
+    padding: 25px;
+    gap: 30px;
+    align-items: stretch;
+    transition: all 0.2s ease;
+}
+
+.triage-wide-card:hover { 
+    border-color: var(--accent-soft); 
+}
+
+.ready-dispatch { 
+    border-left: 8px solid var(--accent-warm); 
+    background: #fffdfa; 
+}
+.ready-archive { 
+    border-left: 8px solid var(--accent-soft); 
+    opacity: 0.8; 
+}
+
+.card-identity { 
+    flex: 0 0 240px; 
+    display: flex; 
+    flex-direction: column; 
+    justify-content: center; 
+}
+.v-date-badge {
+    font-size: 0.7rem; 
+    font-weight: 800; 
+    color: var(--text-muted);
+    background: var(--bg-main); 
+    padding: 4px 12px; 
+    border-radius: 4px;
+    width: fit-content; 
+    margin-bottom: 10px;
+}
+
+.v-title-main { 
+    font-size: 1.15rem; 
+    font-weight: 700; 
+    color: var(--text-primary); 
+    margin: 0; 
+    line-height: 1.3; 
+}
+.v-id-tag { 
+    font-size: 0.65rem; 
+    color: var(--text-muted); 
+    margin-top: 6px; 
+    font-family: monospace; 
+}
+
+.card-notes { flex: 1; }
+.card-notes label, .control-group label {
+    display: block; 
+    font-size: 0.7rem; 
+    font-weight: 800;
+    text-transform: uppercase; 
+    color: var(--text-muted); 
+    margin-bottom: 8px;
+    letter-spacing: 0.5px;
+}
+
+.card-notes textarea {
+    width: 95%; 
+    height: 110px; 
+    background: var(--bg-main); 
+    border: 1px solid var(--border-color);
+    border-radius: 8px; 
+    padding: 12px; 
+    font-size: 0.9rem; 
+    font-family: inherit; 
+    resize: none; 
+    transition: all 0.2s;
+}
+
+.card-controls { 
+    flex: 0 0 260px; 
+    display: flex; 
+    flex-direction: column; 
+    gap: 20px; 
+    justify-content: center; 
+}
+.status-select-wide { 
+    width: 100%; 
+    padding: 10px; 
+    border: 1px solid var(--border-color); 
+    background: var(--bg-main); 
+    border-radius: 8px; 
+    font-weight: 600; 
+    cursor: pointer; 
+}
+
+.dropdown-checkbox { 
+    position: relative; 
+}
+.dropbtn {
+    width: 100%; 
+    padding: 10px 14px; 
+    background: #fff; 
+    border: 1px solid var(--border-color);
+    border-radius: 8px; 
+    text-align: left; 
+    font-size: 0.85rem; 
+    cursor: pointer;
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center;
+}
+
+.dropbtn.has-selection { 
+    border-color: var(--accent-soft); 
+    background: var(--bg-main); 
+    font-weight: 700; 
+}
+.dropdown-content {
+    display: none; 
+    position: absolute; 
+    background: #ffffff; 
+    width: 320px; 
+    right: 0;
+    z-index: 100; 
+    border: 1px solid var(--accent-soft); 
+    box-shadow: var(--card-shadow);
+    border-radius: 8px; 
+    padding: 12px; 
+    margin-top: 5px;
+}
+
+.dropdown-content.show { display: block; }
+.dropdown-search { 
+    width: 100%; 
+    padding: 8px; 
+    margin-bottom: 12px; 
+    border: 1px solid var(--border-color); 
+    border-radius: 4px; 
+}
+.scroll-list { max-height: 200px; overflow-y: auto; }
+.show-option { 
+    display: flex; 
+    align-items: center; 
+    gap: 12px; 
+    padding: 6px 0; 
+    cursor: pointer; 
+    font-size: 0.85rem; }
+
+.btn-card-save {
+    padding: 12px; 
+    background: var(--text-primary); 
+    color: white;
+    border-radius: 8px; 
+    font-weight: 800; 
+    border: none; cursor: pointer;
+    text-transform: uppercase; 
+    transition: 0.2s;
+}
+
+.btn-card-save:hover { background: var(--accent-soft); }
+.success-flash { background: #4caf50 !important; }
+
+@media (max-width: 992px) { .triage-wide-card { flex-direction: column; } }

@@ -1,0 +1,90 @@
+{% extends "admbase.html" %}
+
+{% block title %}Entity S{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admentitys.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="manager-container">
+    
+    <div class="archive-header">
+        <h2>Music Management</h2>
+        <form method="GET" class="search-form">
+            <input type="text" name="q" value="{{ search_q or '' }}" placeholder="Filter archive...">
+        </form>
+    </div>
+
+    <section class="workbench-section">
+        <div class="workbench-label" id="mode-text">New Entry</div>
+        <form method="POST" id="song-form">
+            <input type="hidden" name="action" value="insert" id="form-action">
+            <input type="hidden" name="song_id" id="edit-id">
+
+            <div class="form-grid">
+                <input type="text" name="title" id="in-title" placeholder="Song Title" required>
+                <input type="text" name="artist" id="in-artist" placeholder="Artist" required>
+                <input type="text" name="album" id="in-album" placeholder="Album">
+                <input type="number" name="track_number" id="in-track" value="1" class="track-input">
+            </div>
+
+            <div class="form-grid bottom">
+                <input type="url" name="spotify" id="in-spotify" placeholder="Spotify URL">
+                <input type="url" name="youtube" id="in-youtube" placeholder="YouTube URL">
+                <div class="btn-group">
+                    <button type="submit" class="btn-submit" id="btn-text">Insert</button>
+                    <button type="button" class="btn-reset" onclick="resetWorkbench()">×</button>
+                </div>
+            </div>
+        </form>
+    </section>
+
+    <table class="archive-table">
+        <thead>
+            <tr>
+                <th width="40">#</th>
+                <th>Title</th>
+                <th>Artist</th>
+                <th>Album</th>
+                <th width="50"></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for s in songs %}
+            <tr onclick='editSong({{ s|tojson }})' class="song-row">
+                <td class="mono-text">{{ s.track_number }}</td>
+                <td><strong>{{ s.songtitle }}</strong></td>
+                <td>{{ s.artist }}</td>
+                <td class="dim-text">{{ s.album or '-' }}</td>
+                <td class="edit-btn-text">EDIT</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<script>
+function editSong(s) {
+    document.getElementById('mode-text').innerText = "Edit Entry";
+    document.getElementById('form-action').value = "update";
+    document.getElementById('btn-text').innerText = "Update";
+    
+    document.getElementById('edit-id').value = s.song_id;
+    document.getElementById('in-title').value = s.songtitle;
+    document.getElementById('in-artist').value = s.artist;
+    document.getElementById('in-album').value = s.album || '';
+    document.getElementById('in-track').value = s.track_number;
+    document.getElementById('in-spotify').value = s.spotify_link || '';
+    document.getElementById('in-youtube').value = s.youtube_link || '';
+    window.scrollTo({top: 0, behavior: 'smooth'});
+}
+
+function resetWorkbench() {
+    document.getElementById('song-form').reset();
+    document.getElementById('mode-text').innerText = "New Entry";
+    document.getElementById('form-action').value = "insert";
+    document.getElementById('btn-text').innerText = "Insert";
+}
+</script>
+{% endblock %}

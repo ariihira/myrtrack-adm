@@ -1,0 +1,193 @@
+{% extends "admbase.html" %}
+
+{% block title %}Video Triage Queue{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admtriage.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="triage-header-main">
+    <h2>Video Triage Queue</h2>
+    <p>Watching Timeline: Review, Note, and Dispatch to Shows</p>
+</div>
+
+<div class="triage-filters">
+    <div class="filter-row" id="yearFilters">
+        <span class="filter-label">Year:</span>
+        <button type="button" class="btn-filter {% if selected_year == 'all' %}active{% endif %}" 
+                onclick="applyServerFilter('year', 'all')">All</button>
+        {% for year in years %}
+        <button type="button" class="btn-filter {% if selected_year == year %}active{% endif %}" 
+                onclick="applyServerFilter('year', '{{ year }}')">{{ year }}</button>
+        {% endfor %}
+    </div>
+    
+    <div class="filter-row" id="monthFilters" style="{% if selected_year == 'all' %}display: none;{% else %}display: flex;{% endif %}">
+        <span class="filter-label">Month:</span>
+        <button type="button" class="btn-filter {% if selected_month == 'all' %}active{% endif %}" 
+                onclick="applyServerFilter('month', 'all')">All Months</button>
+        {% for m_num, m_name in [('1','Jan'), ('2','Feb'), ('3','Mar'), ('4','Apr'), ('5','May'), ('6','Jun'), ('7','Jul'), ('8','Aug'), ('9','Sep'), ('10','Oct'), ('11','Nov'), ('12','Dec')] %}
+        <button type="button" class="btn-filter {% if selected_month == m_num %}active{% endif %}" 
+                onclick="applyServerFilter('month', '{{ m_num }}')">{{ m_name }}</button>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="wide-card-stack" id="videoStack">
+    {% for video in videos %}
+    <div class="triage-wide-card" id="card-{{ video.video_id }}" 
+         data-year="{{ video.releaseDate | format_date('%Y') }}" 
+         data-month="{{ video.releaseDate | format_date('%m') }}">
+        
+        <div class="card-identity">
+            <span class="v-date-badge">{{ video.releaseDate | format_date('%Y-%m-%d') }}</span>
+            <h3 class="v-title-main">{{ video.video_title }}</h3>
+            <div class="v-id-tag">ID: #{{ video.video_id }}</div>
+        </div>
+
+        <div class="card-notes">
+            <label>Watch Notes</label>
+            <textarea id="notes-{{ video.video_id }}" placeholder="Add details while watching...">{{ video.video_notes or '' }}</textarea>
+        </div>
+
+        <div class="card-controls">
+            <div class="control-group">
+                <label>Assignment</label>
+                <div class="dropdown-checkbox">
+                    <button type="button" class="dropbtn" id="btn-{{ video.video_id }}" onclick="toggleTriageDrop('drop-{{ video.video_id }}')">
+                        <span class="btn-text">Select Shows</span>
+                    </button>
+                    <div id="drop-{{ video.video_id }}" class="dropdown-content">
+                        <input type="text" class="dropdown-search" placeholder="Search shows..." onkeyup="filterTriage(this)">
+                        <div class="scroll-list">
+                            {% for show in shows %}
+                            <label class="show-option">
+                                <input type="checkbox" id="show-{{ video.video_id }}-{{ show.title_id }}" 
+                                       value="{{ show.title_id }}" 
+                                       onchange="updateSelectionCount('{{ video.video_id }}')">
+                                <span>{{ show.title }}</span>
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label>Final Status</label>
+                <select id="status-{{ video.video_id }}" class="status-select-wide" onchange="updateCardStatus(this, '{{ video.video_id }}')">
+                    <option value="undecided" selected>⏳ Triage</option>
+                    <option value="show">✅ Dispatch</option>
+                    <option value="archived">📁 Archive</option>
+                </select>
+            </div>
+
+            <button type="button" class="btn-card-save" onclick="saveCard('{{ video.video_id }}')">
+                Save Card
+            </button>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<script>
+    function applyServerFilter(type, value) {
+        const url = new URL(window.location.href);
+        if (type === 'year') {
+            url.searchParams.set('year', value);
+            url.searchParams.set('month', 'all'); // Reset month on year change
+        } else {
+            url.searchParams.set('month', value);
+        }
+        window.location.href = url.toString();
+    }
+    
+    async function saveCard(videoId) {
+        const btn = event.currentTarget;
+        const originalText = btn.innerText;
+        btn.innerText = "Saving...";
+        btn.disabled = true;
+
+        const notes = document.getElementById(`notes-${videoId}`).value;
+        const status = document.getElementById(`status-${videoId}`).value;
+        
+        const checkedShows = Array.from(
+            document.querySelectorAll(`#drop-${videoId} input[type="checkbox"]:checked`)
+        ).map(cb => cb.value);
+
+        const payload = {
+            video_id: videoId,
+            notes: notes,
+            status: status,
+            shows: checkedShows
+        };
+
+        try {
+            const response = await fetch('/api/triage/save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                btn.innerText = `Saved ${timestamp} ✓`;
+                btn.classList.add('success-flash');
+                btn.disabled = false;
+                
+                if (status !== 'undecided') {
+                    setTimeout(() => {
+                        document.getElementById(`card-${videoId}`).style.opacity = '0.4';
+                    }, 1000);
+                }
+            } else {
+                alert("Error: " + result.message);
+                btn.innerText = "Retry Save";
+                btn.disabled = false;
+            }
+        } catch (err) {
+            alert("Server communication failed.");
+            btn.innerText = "Retry Save";
+            btn.disabled = false;
+        }
+    }
+
+    function toggleTriageDrop(id) {
+        const el = document.getElementById(id);
+        const isVisible = el.classList.contains('show');
+        document.querySelectorAll('.dropdown-content').forEach(d => d.classList.remove('show'));
+        if (!isVisible) el.classList.add('show');
+    }
+
+    function filterTriage(input) {
+        const filter = input.value.toLowerCase();
+        const labels = input.parentElement.querySelectorAll('.show-option');
+        labels.forEach(label => {
+            label.style.display = label.innerText.toLowerCase().includes(filter) ? "flex" : "none";
+        });
+    }
+
+    function updateSelectionCount(videoId) {
+        const dropdown = document.getElementById('drop-' + videoId);
+        const btnText = document.querySelector(`#btn-${videoId} .btn-text`);
+        const selectedCount = dropdown.querySelectorAll('input[type="checkbox"]:checked').length;
+        btnText.innerText = selectedCount > 0 ? `${selectedCount} Shows Selected` : "Select Shows";
+        document.getElementById('btn-' + videoId).classList.toggle('has-selection', selectedCount > 0);
+    }
+
+    function updateCardStatus(select, videoId) {
+        const card = document.getElementById('card-' + videoId);
+        card.classList.toggle('ready-dispatch', select.value === 'show');
+        card.classList.toggle('ready-archive', select.value === 'archived');
+    }
+
+    window.onclick = e => {
+        if (!e.target.matches('.dropbtn') && !e.target.closest('.dropdown-content')) {
+            document.querySelectorAll('.dropdown-content').forEach(d => d.classList.remove('show'));
+        }
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,74 @@
+{% extends "admbase.html" %}
+
+{% block title %}Song Library{% endblock %}
+
+{% block extra_head %}<link rel="stylesheet" href="{{ url_for('static', filename='css/admsonglib.css') }}">{% endblock %}
+
+{% block content %}
+<div class="lib-root">
+    <header class="lib-header">
+        <div class="header-main">
+            <h1>Music Library</h1>
+            <div class="stats-bar">{{ library.keys()|length }} Artists Indexed</div>
+        </div>
+        <input type="text" id="libFilter" placeholder="Quick find artist..." onkeyup="filterLib()">
+    </header>
+
+    <nav class="alpha-nav">
+        {% for letter in alphabet %}
+        <a href="#letter-{{ letter }}">{{ letter }}</a>
+        {% endfor %}
+    </nav>
+
+    <main class="lib-body">
+        {% for artist, albums in library.items() %}
+        {% set jump_key = artist[0].upper() if artist[0].isalpha() else '#' %}
+        
+        <section class="artist-section" data-artist="{{ artist|lower }}" id="letter-{{ jump_key }}">
+            <h2 class="artist-name">{{ artist }}</h2>
+            
+            {% for album, songs in albums.items() %}
+            <div class="album-block">
+                <div class="album-header">
+                    <span class="album-title">{{ album }}</span>
+                    <span class="track-count">{{ songs|length }} tracks</span>
+                </div>
+                
+                <div class="song-list">
+                    {% for song in songs %}
+                    <div class="song-row">
+                        <div class="song-meta">
+                            <span class="track-idx">{{ "%02d" | format(song.track_number) }}</span>
+                            <span class="song-name">{{ song.songtitle }}</span>
+                        </div>
+                        <div class="song-links">
+                            {% if song.spotify_link %}<a href="{{ song.spotify_link }}" target="_blank">SPOT</a>{% endif %}
+                            {% if song.youtube_link %}<a href="{{ song.youtube_link }}" target="_blank">YT</a>{% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        </section>
+        {% endfor %}
+    </main>
+</div>
+
+<script>
+    function filterLib() {
+        const q = document.getElementById('libFilter').value.toLowerCase();
+        document.querySelectorAll('.artist-section').forEach(sec => {
+            sec.style.display = sec.getAttribute('data-artist').includes(q) ? 'block' : 'none';
+        });
+    }
+
+    document.querySelectorAll('.alpha-nav a').forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            const target = document.getElementById(this.getAttribute('href').substring(1));
+            if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+    });
+</script>
+{% endblock %}

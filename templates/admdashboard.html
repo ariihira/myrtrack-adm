@@ -1,0 +1,50 @@
+{% extends "admbase.html" %}
+
+{% block title %}Directory{% endblock %}
+
+{% block extra_head %}<link rel="stylesheet" href="{{ url_for('static', filename='css/admdashboard.css') }}">{% endblock %}
+
+{% block content %}
+
+
+
+<div class="dashboard-grid">
+    <div class="link-section">
+        <h3>ADMIN</h3>
+        <ul>
+            <li><a href="{{ url_for('addshow') }}">Add Showtitle</a></li>
+            <li><a href="{{ url_for('addvideo') }}">Add Video</a></li>
+            <li><a href="{{ url_for('addtimeline') }}">Insert to Watch-Timeline</a></li>
+        </ul>
+    </div>
+
+    <div class="link-section">
+        <h3>MAINTENANCE</h3>
+        <ul>
+            <li><a href="{{ url_for('batchedit') }}">Batch Edit</a></li>
+            <li><a href="{{ url_for('sorttimeline') }}">Sort Watch-Timeline</a></li>
+            <li><a href="{{ url_for('sortarch') }}">Sort Watch-Timeline (arch)</a></li>
+        </ul>
+    </div>
+
+    <div class="link-section">
+        <h3>Entity Management</h3>
+        <ul>
+            <li><a href="{{ url_for('entityhgt') }}">(HGT) Group/Member</a></li>
+            <li><a href="{{ url_for('entitymc') }}">(M) MC Pairing</a></li>
+            <li><a href="{{ url_for('entityl') }}">(L) Season Label/Livestream Tag</a></li>
+            <li><a href="{{ url_for('entitys') }}">(S) Song Recommendation</a></li>
+        </ul>
+    </div>
+
+    <div class="link-section">
+        <h3>LIBRARY</h3>
+        <ul>
+            <li><a href="{{ url_for('ktimeline') }}">Rough K-Timeline</a></li>
+            <li><a href="{{ url_for('livetimeline') }}">Livestream Timeline</a></li>
+            <li><a href="{{ url_for('memblist') }}">Member List</a></li>
+            <li><a href="{{ url_for('songlib') }}">Song Library</a></li>
+        </ul>
+    </div>
+</div>
+{% endblock %}

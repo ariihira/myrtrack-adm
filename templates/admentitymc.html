@@ -1,0 +1,154 @@
+{% extends "admbase.html" %}
+
+{% block title %}Entity M{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admentitymc.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="management-container">
+    <div class="page-header">
+        <h2>MC Management</h2>
+    </div>
+
+    <div class="dual-layout">
+        <aside class="add-card">
+            <h3>New Pairing</h3>
+            <form method="POST">
+                <input type="hidden" name="action" value="insert">
+                <div class="form-group">
+                    <label>Pair Name</label>
+                    <input type="text" name="pairname" placeholder="e.g. MC Jangkku" required>
+                </div>
+                <div class="form-group">
+                    <label>Show</label>
+                    <select name="title_id">
+                        {% for s in shows %}<option value="{{ s.title_id }}">{{ s.title }}</option>{% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Members</label>
+                    <div class="custom-multiselect">
+                        <div class="select-box" onclick="toggleCheckboxArea('add-member-list')">
+                            <span id="add-member-label">Select Members</span>
+                        </div>
+                        <div id="add-member-list" class="checkboxes-area">
+                            {% for m in members %}
+                            <label class="check-item">
+                                <input type="checkbox" name="member_ids" value="{{ m.member_id }}" onchange="updateLabel('add-member-list', 'add-member-label')">
+                                {{ m.member_name }} <small>({{ m.group_name }})</small>
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                <button type="submit" class="btn-save">Create Pair</button>
+            </form>
+        </aside>
+
+        <main class="display-card">
+            <table class="mc-table">
+                <thead>
+                    <tr>
+                        <th>Pairing</th>
+                        <th>Show</th>
+                        <th>Members</th>
+                        <th style="text-align:right;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in pairings %}
+                    <tr id="row-{{ p.mc_id }}">
+                        <form method="POST">
+                            <input type="hidden" name="action" value="update">
+                            <input type="hidden" name="mc_id" value="{{ p.mc_id }}">
+                            <td>
+                                <span class="v-{{ p.mc_id }}">{{ p.mc_pairname }}</span>
+                                <input type="text" name="pairname" value="{{ p.mc_pairname }}" class="is-hidden e-{{ p.mc_id }}">
+                            </td>
+                            <td>
+                                <span class="v-{{ p.mc_id }}">{{ p.title }}</span>
+                                <select name="title_id" class="is-hidden e-{{ p.mc_id }}">
+                                    {% for s in shows %}
+                                    <option value="{{ s.title_id }}" {% if s.title_id == p.title_id %}selected{% endif %}>{{ s.title }}</option>
+                                    {% endfor %}
+                                </select>
+                            </td>
+                            <td style="max-width: 300px;">
+                                <span class="v-{{ p.mc_id }}">{{ p.member_names }}</span>
+                                <div class="custom-multiselect is-hidden e-{{ p.mc_id }}">
+                                    <div class="select-box" onclick="toggleCheckboxArea('edit-list-{{ p.mc_id }}')">
+                                        <span>Edit Members</span>
+                                    </div>
+                                    <div id="edit-list-{{ p.mc_id }}" class="checkboxes-area">
+                                        {% set current_ids = p.member_ids.split(',') if p.member_ids else [] %}
+                                        {% for m in members %}
+                                        <label class="check-item">
+                                            <input type="checkbox" name="member_ids" value="{{ m.member_id }}" 
+                                                   {% if m.member_id|string in current_ids %}checked{% endif %}>
+                                            {{ m.member_name }} <small>({{ m.group_name }})</small>
+                                        </label>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </td>
+                            <td style="text-align:right;">
+                                <button type="button" class="btn-outline v-{{ p.mc_id }}" onclick="tg('{{ p.mc_id }}')">Edit</button>
+                                <button type="submit" class="btn-save is-hidden e-{{ p.mc_id }}" style="width: auto;">Save</button>
+                            </td>
+                        </form>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </main>
+    </div>
+</div>
+
+<script>
+    // toggle checkbox area
+    function toggleCheckboxArea(id) {
+        const area = document.getElementById(id);
+        const isOpen = area.style.display === 'block';
+        
+        // Close all other dropdowns
+        document.querySelectorAll('.checkboxes-area').forEach(el => el.style.display = 'none');
+        
+        area.style.display = isOpen ? 'none' : 'block';
+    }
+
+    // update selection label
+    function updateLabel(listId, labelId) {
+        const list = document.getElementById(listId);
+        const label = document.getElementById(labelId);
+        const count = list.querySelectorAll('input[type="checkbox"]:checked').length;
+        
+        label.innerText = count > 0 ? count + " Selected" : "Select Members";
+    }
+
+    // row toggle (view vs edit)
+    function tg(id) {
+        document.querySelectorAll(`.v-${id}, .e-${id}`).forEach(el => el.classList.toggle('is-hidden'));
+        // close dropdowns if switching
+        document.querySelectorAll('.checkboxes-area').forEach(el => el.style.display = 'none');
+    }
+
+    // global click to close
+    window.onclick = function(event) {
+        if (!event.target.closest('.custom-multiselect')) {
+            document.querySelectorAll('.checkboxes-area').forEach(el => el.style.display = 'none');
+        }
+    };
+
+    // initial label sync on load
+    document.addEventListener('DOMContentLoaded', () => {
+        // sync add form label
+        updateLabel('add-list', 'add-label');
+        // sync all table row labels
+        {% for p in pairings %}
+            updateLabel('list-{{ p.mc_id }}', 'label-{{ p.mc_id }}');
+        {% endfor %}
+    });
+</script>
+{% endblock %}

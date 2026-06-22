@@ -1,0 +1,56 @@
+.dashboard-grid {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: 80px; 
+    margin-top: 20px;
+}
+
+.link-section {
+    min-width: 200px;
+}
+
+.link-section h3 {
+    font-size: 0.9rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: var(--text-primary);
+    margin-bottom: 20px;
+    letter-spacing: 0.5px;
+}
+
+.link-section .sub-heading {
+    margin-top: 25px;
+}
+
+.link-section ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.link-section ul li {
+    margin-bottom: 12px;
+}
+
+.link-section ul li a {
+    text-decoration: none;
+    font-size: 1rem;
+    color: var(--text-muted);
+    transition: color 0.2s ease;
+}
+
+.link-section ul li a:hover {
+    color: var(--accent-warm); 
+}
+
+@media (max-width: 768px) {
+    .dashboard-grid {
+        flex-direction: column;
+        gap: 40px;
+    }
+    
+    .main-content {
+        padding: 40px 20px;
+    }
+}

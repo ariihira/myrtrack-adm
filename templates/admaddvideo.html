@@ -1,0 +1,181 @@
+{% extends "admbase.html" %}
+
+{% block title %}Add Video{% endblock %}
+
+{% block extra_head %}<link rel="stylesheet" href="{{ url_for('static', filename='css/adminputforms.css') }}">{% endblock %}
+
+{% block content %}
+
+<div class="layout">
+
+<form method="POST" action="/addvideo">
+
+    <!-- video title + variety inline -->
+    <label for="title">Video Title:</label>
+    <div class="title-variety">
+        <input type="text" name="title" id="title" required>
+        <label class="variety-label">
+            <input type="checkbox" name="variety"> Variety
+        </label>
+    </div>
+    <br>
+
+    <!-- release date -->
+    <label>Release Date:</label>
+    <div style="display:flex; align-items:center; gap:4px;">
+        <span style="font-size:30px; color:#555; margin-bottom: 20px;">📅</span> <!-- purely decorative -->
+        <input type="number" name="release_day" min="1" max="31" placeholder="DD">
+        <input type="number" name="release_month" min="1" max="12" placeholder="MM">
+        <input type="number" name="release_year" min="1900" max="2100" placeholder="YYYY">
+        
+    </div>
+
+    <!-- season + episode -->
+    <div class="seasons-episodes">
+        <label class="seasode-label">Season:</label>
+        <input type="text" name="season">
+
+        <label class="seasode-label">Episode:</label>
+        <input type="text" name="episode">
+    </div>
+
+    <!-- show title -->
+    <label for="show_id">Show Title:</label>
+    <div class="dropdown-checkbox">
+        <button type="button" class="dropbtn">Select Shows</button>
+        <div class="dropdown-content">
+            <input type="text" class="dropdown-search" placeholder="Search...">
+            {% for s in shows %}
+                <label>
+                    <input type="checkbox" name="showtitles[]" value="{{ s.title_id }}">
+                    {{ s.title }}
+                </label>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- episode extras -->
+    <label for="episode_extras">Show Extras:</label>
+    <select name="episode_extras" id="episode_extras">
+        <option value="">-- Select Option --</option>
+        <option value="Teaser">Teaser</option>
+        <option value="Behind">Behind</option>
+        <option value="Extra">Extra Clips</option>
+    </select>
+    <br><br>
+
+    <!-- extra section 1: group & member ownership -->
+    <p>Host</p>
+    <div class="dropdown-checkbox">
+        <button type="button" class="dropbtn">Select Groups (Host)</button>
+        <div class="dropdown-content">
+            <input type="text" class="dropdown-search" placeholder="Search...">
+            {% for g in groups %}
+                <label>
+                    <input type="checkbox" name="ownership_groups[]" value="{{ g.group_id }}">
+                    {{ g.group_name }}
+                </label>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="dropdown-checkbox">
+        <button type="button" class="dropbtn">Select Members (Host)</button>
+        <div class="dropdown-content">
+            <input type="text" class="dropdown-search" placeholder="Search...">
+            {% for m in members %}
+                <label>
+                    <input type="checkbox" name="ownership_members[]" value="{{ m.member_id }}">
+                    {{ m.member_name }}{% if m.groups %} ({{ m.groups }}){% endif %}
+                </label>
+            {% endfor %}
+        </div>
+    </div>
+    <br>
+
+    <!-- extra section 2: guest -->
+    <p>Guest</p>
+    <div class="dropdown-checkbox">
+        <button type="button" class="dropbtn">Select Groups (Guest)</button>
+        <div class="dropdown-content">
+            <input type="text" class="dropdown-search" placeholder="Search...">
+            {% for g in groups %}
+                <label>
+                    <input type="checkbox" name="guest_groups[]" value="{{ g.group_id }}">
+                    {{ g.group_name }}
+                </label>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="dropdown-checkbox">
+        <button type="button" class="dropbtn">Select Members (Guest)</button>
+        <div class="dropdown-content">
+            <input type="text" class="dropdown-search" placeholder="Search...">
+            {% for m in members %}
+                <label>
+                    <input type="checkbox" name="guest_members[]" value="{{ m.member_id }}">
+                    {{ m.member_name }}{% if m.groups %} ({{ m.groups }}){% endif %}
+                </label>
+            {% endfor %}
+        </div>
+    </div>
+    <br>
+
+    <!-- extra section 3: mushow MC -->
+    <p>Music Show MC</p>
+    <div class="dropdown-checkbox">
+        <button type="button" class="dropbtn">Select MC Pairs</button>
+        <div class="dropdown-content">
+            {% for m in mcs %}
+                <label>
+                    <input type="checkbox" name="mcs[]" value="{{ m.mc_id }}">
+                    {{ m.mc_pairname }}
+                </label>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="dropdown-checkbox">
+        <button type="button" class="dropbtn">Select Members (MC)</button>
+        <div class="dropdown-content">
+            <input type="text" class="dropdown-search" placeholder="Search...">
+            {% for mm in mc_members_list %}
+                <label>
+                    <input type="checkbox" name="mc_members[]" value="{{ mm.member_id }}_{{ mm.group_id }}">
+                    {{ mm.member_name }}{% if mm.group_name %} ({{ mm.group_name }}){% endif %}
+                </label>
+            {% endfor %}
+        </div>
+    </div>
+    <br>
+
+    <!-- extra section 4: livestream tag -->
+    <p>Livestream</p>
+    <div class="dropdown-checkbox">
+        <button type="button" class="dropbtn">Select Livestream Tags</button>
+        <div class="dropdown-content">
+            {% for t in tags %}
+                <label>
+                    <input type="checkbox" name="livestream_tags[]" value="{{ t.tag_id }}">
+                    {{ t.tag_name }}
+                </label>
+            {% endfor %}
+        </div>
+    </div>
+    <br>
+
+    <!-- extra section 5: notes -->
+    <label for="notes">Notes:</label>
+    <textarea name="notes" id="notes" rows="4"></textarea>
+    <br><br>
+
+    <button type="submit">Add Video</button>
+</form>
+
+</div>
+
+<script src="{{ url_for('static', filename='js/forms.js') }}"></script>
+
+{% endblock %}
+

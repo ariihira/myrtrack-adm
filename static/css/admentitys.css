@@ -1,0 +1,107 @@
+.manager-container { padding: 40px; max-width: 1300px; margin: auto; }
+
+.archive-header { 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: baseline; 
+    margin-bottom: 25px; 
+    border-bottom: 2px solid #d35400;
+}
+
+.archive-header h2 { 
+    font-weight: 900; 
+    text-transform: uppercase; 
+    margin: 0; 
+    padding-bottom: 10px; 
+}
+
+.search-form input { 
+    padding: 8px 12px; 
+    border: 1px solid #ddd; 
+    background: #fcfaf7; 
+    width: 250px; 
+}
+
+.workbench-section { margin-bottom: 50px; }
+
+.workbench-label {
+    font-size: 0.6rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: #d35400;
+    margin-bottom: 8px;
+    letter-spacing: 1px;
+}
+
+.form-grid {
+    display: flex;
+    border: 1px solid #d35400;
+    background: #fff;
+    margin-bottom: -1px;
+}
+
+.form-grid input {
+    flex: 1;
+    border: none;
+    border-right: 1px solid #d35400;
+    padding: 12px 15px;
+    font-size: 0.9rem;
+    outline: none;
+    background: transparent;
+    height: 46px;
+    box-sizing: border-box;
+}
+
+.form-grid input:last-child { border-right: none; }
+
+.track-input { flex: 0 0 70px !important; text-align: center; }
+
+.btn-group { display: flex; border-left: 1px solid #d35400; }
+
+.btn-submit {
+    background: #d35400;
+    color: #fff;
+    border: none;
+    padding: 0 30px;
+    height: 46px;
+    font-weight: 800;
+    text-transform: uppercase;
+    cursor: pointer;
+    font-size: 0.7rem;
+}
+
+.btn-reset {
+    background: #f2f2f2;
+    color: #888;
+    border: none;
+    padding: 0 15px;
+    font-size: 1.1rem;
+    cursor: pointer;
+}
+
+.archive-table { width: 100%; border-collapse: collapse; }
+.archive-table th { 
+    text-align: left; 
+    padding: 12px; 
+    border-bottom: 2px solid #d35400; 
+    font-size: 0.65rem; 
+    color: #888; 
+    text-transform: uppercase; 
+}
+
+.archive-table td { 
+    padding: 12px; 
+    border-bottom: 1px solid #eee; 
+    font-size: 0.9rem; }
+
+.song-row { cursor: pointer; }
+.song-row:hover { background: #fcfaf7; }
+.mono-text { font-family: monospace; color: #d35400; font-weight: 700; }
+.dim-text { color: #ccc; }
+
+.edit-btn-text { 
+    font-size: 0.6rem; 
+    font-weight: 800; 
+    color: #d35400; 
+    text-transform: uppercase; 
+}

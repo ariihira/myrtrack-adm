@@ -1,0 +1,98 @@
+{% extends "admbase.html" %}
+
+{% block title %}Livestream{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admlivetimeline.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="timeline-container">
+    <nav class="sidebar-nav">
+        {% for year in timeline_data.keys() %}
+            <a href="#year-{{ year }}" class="nav-year" onclick="setActiveYear(this)">{{ year }}</a>
+        {% endfor %}
+    </nav>
+
+    <div class="timeline-main">
+        <header class="timeline-header">
+            <div class="filter-bar">
+                <button class="filter-pill active" onclick="applyFilter('all', this)">All Archives</button>
+                {% for group_name in groups %}
+                    <button class="filter-pill" onclick="applyFilter('{{ group_name }}', this)">{{ group_name }}</button>
+                {% endfor %}
+            </div>
+        </header>
+
+        {% for year, streams in timeline_data.items() %}
+        <section class="year-block" id="year-{{ year }}">
+            <div class="year-label-col">
+                <h2 class="year-header">{{ year }}</h2>
+            </div>
+
+            <div class="cards-col">
+                {% for s in streams %}
+                <article class="stream-card" data-group="{{ s.owner_name }}">
+                    <div class="card-meta">
+                        <span class="v-date">{{ s.releaseDate }}</span>
+                        <span class="v-owner">{{ s.owner_name }}</span>
+                    </div>
+
+                    <div class="card-body">
+                        <h2 class="v-title">{{ s.video_title }}</h2>
+                        <div class="v-show">from {{ s.origin_show }}</div>
+                        
+                        {% if s.video_notes %}
+                        <div class="v-notes">{{ s.video_notes }}</div>
+                        {% endif %}
+
+                        {% if s.songs %}
+                        <button class="music-btn" onclick="toggleMusic('songs-{{ s.video_id }}')">
+                            songs +
+                        </button>
+                        <div id="songs-{{ s.video_id }}" class="music-drawer">
+                            {% for song in s.songs %}
+                                <div class="song-item"><strong>{{ song.artist }} -</strong> {{ song.songtitle }}</div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                </article>
+                {% endfor %}
+            </div>
+        </section>
+        {% endfor %}
+    </div>
+</div>
+
+<script>
+    function toggleMusic(id) {
+        const el = document.getElementById(id);
+        el.style.display = (el.style.display === 'block') ? 'none' : 'block';
+    }
+
+    function setActiveYear(el) {
+        document.querySelectorAll('.nav-year').forEach(y => y.classList.remove('active'));
+        el.classList.add('active');
+    }
+
+    function applyFilter(group, btn) {
+        document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+
+        document.querySelectorAll('.stream-card').forEach(card => {
+            if (group === 'all' || card.getAttribute('data-group') === group) {
+                card.style.display = 'block';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+
+        document.querySelectorAll('.year-block').forEach(block => {
+            const hasVisible = Array.from(block.querySelectorAll('.stream-card'))
+                                    .some(c => c.style.display !== 'none');
+            block.style.display = hasVisible ? 'block' : 'none';
+        });
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,188 @@
+{% extends "admbase.html" %}
+
+{% block title %}Entity HGT{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admentityhgt.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="management-container">
+    <div class="page-header">
+        <h2>Groups & Members Management</h2>
+        <form method="GET" class="search-container">
+            <input type="text" name="q" placeholder="Search entries..." value="{{ search_q or '' }}">
+        </form>
+    </div>
+
+    <div class="dual-layout">
+        <aside class="sidebar-forms">
+            <div class="add-card">
+                <h3>New Group</h3>
+                <form method="POST">
+                    <input type="hidden" name="action" value="insert_group">
+                    <input type="text" name="group_name" placeholder="Group Name" required>
+                    <select name="grouptype">
+                        <option value="">-- Type --</option>
+                        <option value="bg">Boy Group</option>
+                        <option value="gg">Girl Group</option>
+                        <option value="solo">Soloist</option>
+                        <option value="subunit">Subunit</option>
+                    </select>
+                    <select name="parent_id">
+                        <option value="">Parent Group (None)</option>
+                        {% for g in groups %}<option value="{{ g.group_id }}">{{ g.group_name }}</option>{% endfor %}
+                    </select>
+                    <input type="date" name="debutdate">
+                    <button type="submit" class="btn-save">Create Group</button>
+                </form>
+            </div>
+
+            <div class="add-card" style="margin-top:20px;">
+                <h3>New Member</h3>
+                <form method="POST">
+                    <input type="hidden" name="action" value="insert_member">
+                    <input type="text" name="member_name" placeholder="Stage Name" required>
+                    <div class="custom-multiselect">
+                        <div class="select-box" onclick="toggleArea('add-m-list')">
+                            <span id="add-m-label">Assign Groups</span>
+                        </div>
+                        <div id="add-m-list" class="checkboxes-area">
+                            {% for g in groups %}
+                            <label class="check-item">
+                                <input type="checkbox" name="group_ids" value="{{ g.group_id }}" onchange="updateLabel('add-m-list', 'add-m-label')">
+                                {{ g.group_name }}
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <button type="submit" class="btn-save" style="margin-top:10px;">Create Member</button>
+                </form>
+            </div>
+        </aside>
+
+        <main class="main-display">
+            <div class="display-card">
+                <div class="tabs">
+                    <button class="tab-btn active" onclick="switchTab('g-tab')">Groups</button>
+                    <button class="tab-btn" onclick="switchTab('m-tab')">Members</button>
+                </div>
+
+                <div id="g-tab" class="tab-content">
+                    <table class="gm-table">
+                        <thead><tr><th>Group Name</th><th>Type</th><th>Parent</th><th>Debut</th><th></th></tr></thead>
+                        <tbody>
+                            {% for g in groups %}
+                            <tr id="row-g-{{ g.group_id }}">
+                                <form method="POST">
+                                    <input type="hidden" name="action" value="update_group">
+                                    <input type="hidden" name="group_id" value="{{ g.group_id }}">
+                                    <td>
+                                        <span class="v-{{ g.group_id }}">{{ g.group_name }}</span>
+                                        <input type="text" name="group_name" value="{{ g.group_name }}" class="e-{{ g.group_id }} compact-input is-hidden">
+                                    </td>
+                                    <td>
+                                        <span class="v-{{ g.group_id }}">{{ g.grouptype or '—' }}</span>
+                                        <select name="grouptype" class="e-{{ g.group_id }} compact-input is-hidden">
+                                            <option value="bg" {% if g.grouptype == 'bg' %}selected{% endif %}>BG</option>
+                                            <option value="gg" {% if g.grouptype == 'gg' %}selected{% endif %}>GG</option>
+                                            <option value="solo" {% if g.grouptype == 'solo' %}selected{% endif %}>Solo</option>
+                                            <option value="subunit" {% if g.grouptype == 'subunit' %}selected{% endif %}>Subunit</option>
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <span class="v-{{ g.group_id }}">{{ g.parent_name or '—' }}</span>
+                                        <select name="parent_id" class="e-{{ g.group_id }} compact-input is-hidden">
+                                            <option value="">None</option>
+                                            {% for p in groups %}
+                                                {% if p.group_id != g.group_id %}
+                                                <option value="{{ p.group_id }}" {% if p.group_id == g.parent_id %}selected{% endif %}>{{ p.group_name }}</option>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <span class="v-{{ g.group_id }}">{{ g.debutdate or '—' }}</span>
+                                        <input type="date" name="debutdate" value="{{ g.debutdate }}" class="e-{{ g.group_id }} compact-input is-hidden">
+                                    </td>
+                                    <td style="text-align:right;">
+                                        <button type="button" class="btn-outline v-{{ g.group_id }}" onclick="tg('{{ g.group_id }}')">Edit</button>
+                                        <button type="submit" class="btn-save e-{{ g.group_id }} is-hidden" style="width: auto; padding: 4px 12px;">Save</button>
+                                    </td>
+                                </form>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div id="m-tab" class="tab-content is-hidden">
+                    <table class="gm-table">
+                        <thead><tr><th>Name</th><th>Group Assignments</th><th></th></tr></thead>
+                        <tbody>
+                            {% for m in members %}
+                            <tr id="row-m-{{ m.member_id }}">
+                                <form method="POST">
+                                    <input type="hidden" name="action" value="update_member">
+                                    <input type="hidden" name="member_id" value="{{ m.member_id }}">
+                                    <td>
+                                        <span class="vm-{{ m.member_id }}">{{ m.member_name }}</span>
+                                        <input type="text" name="member_name" value="{{ m.member_name }}" class="em-{{ m.member_id }} compact-input is-hidden">
+                                    </td>
+                                    <td>
+                                        <span class="vm-{{ m.member_id }}">{{ m.current_groups or '—' }}</span>
+                                        <div class="custom-multiselect em-{{ m.member_id }} is-hidden">
+                                            <div class="select-box" onclick="toggleArea('mlist-{{ m.member_id }}')">
+                                                <span id="mlabel-{{ m.member_id }}">Modify Groups</span>
+                                            </div>
+                                            <div id="mlist-{{ m.member_id }}" class="checkboxes-area">
+                                                {% set active_ids = m.current_group_ids.split(',') if m.current_group_ids else [] %}
+                                                {% for g in groups %}
+                                                <label class="check-item">
+                                                    <input type="checkbox" name="group_ids" value="{{ g.group_id }}" {% if g.group_id|string in active_ids %}checked{% endif %} onchange="updateLabel('mlist-{{ m.member_id }}', 'mlabel-{{ m.member_id }}')">{{ g.group_name }}
+                                                </label>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td style="text-align:right;">
+                                        <button type="button" class="btn-outline vm-{{ m.member_id }}" onclick="tgm('{{ m.member_id }}')">Edit</button>
+                                        <button type="submit" class="btn-save em-{{ m.member_id }} is-hidden" style="width: auto; padding: 4px 12px;">Save</button>
+                                    </td>
+                                </form>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+
+<script>
+    function toggleArea(id) {
+        const el = document.getElementById(id);
+        const isOpen = el.style.display === 'block';
+        document.querySelectorAll('.checkboxes-area').forEach(a => a.style.display = 'none');
+        el.style.display = isOpen ? 'none' : 'block';
+    }
+
+    function updateLabel(listId, labelId) {
+        const count = document.getElementById(listId).querySelectorAll('input:checked').length;
+        document.getElementById(labelId).innerText = count > 0 ? count + " Selected" : "Select Groups";
+    }
+
+    function tg(id) { document.querySelectorAll(`.v-${id}, .e-${id}`).forEach(el => el.classList.toggle('is-hidden')); }
+    function tgm(id) { document.querySelectorAll(`.vm-${id}, .em-${id}`).forEach(el => el.classList.toggle('is-hidden')); }
+
+    function switchTab(id) {
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.add('is-hidden'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(id).classList.remove('is-hidden');
+        event.currentTarget.classList.add('active');
+    }
+
+    window.onclick = e => { if (!e.target.closest('.custom-multiselect')) document.querySelectorAll('.checkboxes-area').forEach(a => a.style.display = 'none'); };
+</script>
+{% endblock %}

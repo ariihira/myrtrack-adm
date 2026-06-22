@@ -1,0 +1,216 @@
+/* Form Layout */
+.layout {
+  max-width: 700px;
+  margin: 50px auto 80px; 
+  padding: 30px;
+  background: #ffffff; /* pure white for the card look */
+  border-radius: 12px;
+  box-shadow: var(--card-shadow);
+  color: var(--text-primary);
+  text-align: left;
+  font-family: 'Inter', -apple-system, sans-serif;
+}
+
+/* form headings (paragraphs used as section headers) */
+.layout p {
+  font-weight: 800;
+  font-size: 1.1rem;
+  margin-top: 20px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 5px;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* labels & inputs */
+label {
+  display: block;
+  margin: 10px 0 5px;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.layout input[type="text"],
+.layout input[type="number"],
+.layout input[type="file"],
+.layout select,
+.layout textarea {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 15px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-main);
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  box-sizing: border-box;
+}
+
+.layout textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+.layout input:focus, 
+.layout select:focus, 
+.layout textarea:focus {
+  outline: none;
+  border-color: var(--accent-soft); 
+}
+
+input[type="checkbox"] {
+  margin-right: 8px;
+  accent-color: var(--accent-warm); 
+}
+
+/* poster upload */
+.poster-upload {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.poster-upload img {
+  width: 250px;
+  height: 150px;
+  object-fit: cover;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 2px dashed var(--border-color);
+  transition: 0.3s;
+}
+
+.poster-upload img:hover {
+  border-color: var(--accent-warm);
+  opacity: 0.9;
+}
+
+/* title + variety inline */
+.title-variety {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.title-variety input[type="text"] {
+  flex: 7;
+  min-width: 200px;
+}
+
+.variety-label {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  margin-bottom: 25px; 
+  color: var(--accent-warm);
+  font-weight: 800;
+}
+
+/* seasons & episodes */
+.seasons-episodes {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.seasons-episodes input[type="text"],
+.seasons-episodes input[type="number"] {
+  width: 80px;
+}
+
+.layout input[type=number]::-webkit-outer-spin-button,
+.layout input[type=number]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.seasode-label {
+  display: flex;
+  align-items: center;
+  margin-bottom: 25px;
+}
+
+.dropdown-checkbox {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+  margin-bottom: 15px;
+}
+
+.dropbtn {
+  width: 100%;
+  background-color: var(--bg-main);
+  color: var(--text-primary);
+  padding: 10px;
+  font-size: 0.95rem;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.dropbtn::after {
+  content: " ▼";
+  float: right;
+  color: var(--text-muted);
+}
+
+.dropdown-content {
+  display: none;
+  position: absolute;
+  background-color: #ffffff;
+  min-width: 100%;
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  z-index: 10;
+  padding: 10px;
+  box-shadow: var(--card-shadow);
+}
+
+.dropdown-content label {
+  display: block;
+  margin: 5px 0;
+  font-weight: 400;
+}
+
+.dropdown-content.show {
+  display: block;
+}
+
+/* dropdown search box */
+.dropdown-search {
+    margin-bottom: 10px;
+    background: #fff !important;
+}
+
+/* submit button */
+button[type="submit"] {
+  background-color: var(--text-primary); 
+  color: white;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 8px;
+  font-weight: 800;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s;
+  margin-top: 15px;
+  width: 100%;
+}
+
+button[type="submit"]:hover {
+  background-color: var(--accent-soft);
+  transform: translateY(-2px);
+}
+
+/* responsive */
+@media (max-width: 600px) {
+  .layout {
+    padding: 20px;
+    margin: 30px 15px 60px;
+  }
+}

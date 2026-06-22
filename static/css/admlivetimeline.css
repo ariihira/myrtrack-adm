@@ -1,0 +1,208 @@
+.timeline-container {
+    display: flex;
+    margin-top: -40px;
+    width: 100%;
+}
+
+.timeline-main {
+    flex: 1;
+    margin-top: 0; 
+    padding-bottom: 100px;
+}
+
+.sidebar-nav {
+    width: 80px;
+    height: 100vh;
+    position: sticky;
+    top: 0;
+    border-right: 1px solid #e0ddd5;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 40px;
+}
+
+.nav-year {
+    text-decoration: none;
+    color: #b2bec3;
+    font-weight: 900;
+    font-size: 0.8rem;
+    margin-bottom: 35px;
+    transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transform: rotate(-90deg);
+    display: block;
+    cursor: pointer;
+}
+
+.nav-year:hover, .nav-year.active { 
+    color: #d35400; /* Burned Orange highlight */
+    transform: rotate(-90deg) scale(1.2); 
+}
+
+.filter-bar {
+    padding: 20px 5%;
+    background: #fcfaf7; /* Revamp Cream */
+    position: sticky;
+    top: 0;
+    z-index: 999;
+    border-bottom: 1px solid #e0ddd5;
+    margin-bottom: 40px;
+    display: flex;
+    gap: 10px;
+}
+
+.filter-pill {
+    padding: 8px 16px;
+    border-radius: 4px;
+    border: 1px solid #e0ddd5;
+    background: #fff;
+    color: #8e8e8e;
+    font-size: 0.65rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.filter-pill.active { 
+    background: #d35400; 
+    color: #fff; 
+    border-color: #d35400; 
+}
+
+.year-block {
+    display: grid;
+    grid-template-columns: 150px 1fr;
+    gap: 40px;
+    padding: 0 5%;
+    margin-bottom: 100px;
+}
+
+.year-header {
+    font-size: 4rem;
+    font-weight: 900;
+    color: rgba(211, 84, 0, 0.1);
+    position: sticky;
+    top: 100px; 
+    margin: 0;
+    line-height: 1;
+}
+
+.cards-col {
+    border-left: 1px solid #e0ddd5;
+    padding-left: 40px;
+}
+
+.stream-card {
+    background: #ffffff;
+    border: 1px solid #e0ddd5;
+    border-radius: 2px;
+    padding: 35px;
+    margin-bottom: 40px;
+    position: relative;
+    transition: 0.4s ease;
+}
+
+.stream-card:hover {
+    border-color: #d35400;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.03);
+}
+
+.stream-card::before {
+    content: '';
+    position: absolute;
+    left: -46.5px;
+    top: 40px;
+    width: 10px;
+    height: 10px;
+    background: #fcfaf7;
+    border: 2px solid #e0ddd5;
+    border-radius: 50%;
+    transition: 0.3s;
+}
+
+.stream-card:hover::before {
+    background: #d35400;
+    border-color: #d35400;
+}
+
+.card-meta { 
+    display: flex; 
+    justify-content: space-between; 
+    margin-bottom: 20px; 
+}
+
+.v-date { 
+    font-family: 'JetBrains Mono', monospace; 
+    color: #d35400; 
+    font-size: 0.85rem; 
+    font-weight: 700; 
+}
+
+.v-owner { 
+    font-weight: 800; 
+    text-transform: uppercase; 
+    font-size: 0.7rem; 
+    color: #8e8e8e; 
+    letter-spacing: 1px; 
+}
+
+.v-title { 
+    font-size: 1.6rem; 
+    font-weight: 800; 
+    margin-top: 5px; 
+    color: #1a1a1a; 
+}
+
+.v-show { 
+    font-size: 0.8rem; 
+    color: #8e8e8e; 
+    font-weight: 600; 
+    font-style: italic; 
+}
+
+.v-notes { 
+    font-size: 0.95rem; 
+    line-height: 1.7; 
+    color: #3c3c3c; 
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid #e0ddd5;
+}
+
+.music-btn {
+    background: transparent;
+    color: #8e8e8e;
+    border: 1px solid #e0ddd5;
+    padding: 10px 20px;
+    font-size: 0.65rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    cursor: pointer;
+    margin-top: 20px;
+    transition: 0.2s;
+}
+
+.music-btn:hover {
+    border-color: #d35400;
+    color: #d35400;
+    background: rgba(211, 84, 0, 0.05);
+}
+
+.music-drawer {
+    display: none;
+    background: #fdfdfd;
+    padding: 20px;
+    margin-top: 15px;
+    border-left: 3px solid #d35400;
+}
+
+.song-item { 
+    font-size: 0.85rem; 
+    padding: 6px 0; 
+    color: #8e8e8e; 
+    border-bottom: 1px solid #f2f2f2; 
+}
+
+.song-item:last-child { border-bottom: none; }
+.song-item strong { color: #1a1a1a; }

@@ -1,0 +1,56 @@
+:root {
+    --bg-main: #f8f7f2;      
+    --sidebar-bg: #eceae0;   
+    --text-primary: #3c3c3c; 
+    --text-muted: #8e8e8e;
+    --accent-soft: #a7adba;  
+    --accent-warm: #d4a373;  
+    --border-color: #e0ddd5;
+    --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+body {
+    margin: 0;
+    font-family: 'Inter', -apple-system, sans-serif;
+    background-color: var(--bg-main);
+    color: var(--text-primary);
+}
+
+.brand-link {
+    text-decoration: none;
+    color: inherit;
+    display: inline-block;
+}
+
+.brand-link:hover {
+    opacity: 0.8;
+}
+
+.app-container {
+    display: flex;
+    min-height: 100vh;
+}
+
+.logo-icon {
+    font-size: 2.5rem;
+    display: flex; 
+    align-items: center;
+    gap: 10px;
+}
+
+.logo-icon h2 {
+    font-weight: 800;
+    letter-spacing: -1px;
+    font-size: 2rem;
+    margin: 0;
+    color: var(--text-primary);
+}
+
+.main-content {
+    flex: 1;
+    padding: 60px 80px;
+}
+
+.page-body {
+    margin-top: 40px;
+}

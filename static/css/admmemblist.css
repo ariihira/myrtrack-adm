@@ -1,0 +1,115 @@
+:root {
+    --bg: #fcfaf7;
+    --accent: #d35400;
+    --text: #1a1a1a;
+    --border-heavy: #1a1a1a;
+    --border-light: #e0e0e0;
+    --mono: 'JetBrains Mono', monospace;
+}
+
+.lib-root { 
+    padding: 40px; 
+    font-family: 'Lexend', 
+    sans-serif; 
+    background: var(--bg); 
+    color: var(--text); 
+}
+
+.lib-header { 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: flex-end;
+    border-bottom: 4px solid var(--border-heavy); 
+    padding-bottom: 15px; margin-bottom: 5px;
+}
+
+.lib-header h1 { 
+    font-weight: 900; 
+    text-transform: uppercase; 
+    margin: 0; 
+    font-size: 2.5rem; 
+    letter-spacing: -2px; 
+}
+.stats-bar { 
+    font-size: 0.75rem; 
+    font-weight: 800; 
+    color: var(--accent); 
+    text-transform: uppercase; 
+}
+
+#dirSearch { 
+    background: #fff; 
+    border: 2px solid var(--border-heavy); 
+    padding: 8px 12px; 
+    width: 300px; 
+    outline: none; 
+}
+
+.alpha-nav {
+    position: sticky; 
+    top: 0; 
+    background: var(--bg); 
+    z-index: 100;
+    display: flex; 
+    gap: 12px; 
+    padding: 15px 0; 
+    border-bottom: 1px solid var(--border-light);
+    margin-bottom: 40px;
+}
+
+.alpha-nav a { 
+    text-decoration: none; 
+    color: #999; 
+    font-weight: 800; 
+    font-size: 0.75rem; 
+}
+
+.alpha-nav a:hover { color: var(--accent); }
+
+.dir-section { margin-bottom: 50px; }
+.dir-group-header {
+    display: flex; 
+    justify-content: space-between; 
+    align-items: baseline;
+    border-bottom: 2px solid var(--border-heavy); 
+    padding-bottom: 5px; 
+    margin-bottom: 10px;
+}
+.dir-group-header.unassigned { border-color: #8b0000; }
+.dir-group-header.unassigned .g-title { color: #8b0000; }
+
+.g-title { 
+    font-weight: 900; 
+    font-size: 1.4rem; 
+    text-transform: uppercase; 
+    margin: 0; 
+}
+.g-title small { font-size: 0.7rem; color: #999; margin-left: 10px; }
+.g-meta { 
+    font-family: var(--mono); 
+    font-size: 0.65rem; 
+    font-weight: 700; 
+    color: #aaa; 
+}
+
+.member-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 0 30px;
+}
+.member-row {
+    display: flex; align-items: center; padding: 10px 0;
+    border-bottom: 1px solid var(--border-light);
+}
+.m-id { 
+    font-family: var(--mono); font-size: 0.7rem; color: var(--accent); 
+    width: 60px; font-weight: 800;
+}
+.m-name { font-weight: 500; font-size: 0.9rem; }
+
+.empty-msg { 
+    padding: 20px 0; 
+    color: #ccc; 
+    font-style: italic; 
+    font-size: 0.8rem;
+}

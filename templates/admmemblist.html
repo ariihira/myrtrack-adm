@@ -1,0 +1,99 @@
+{% extends "admbase.html" %}
+
+{% block title %}Group/Members{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admmemblist.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="lib-root">
+    <header class="lib-header">
+        <div class="header-main">
+            <h1>Member Directory</h1>
+            <div class="stats-bar">{{ grouped.keys()|length }} Groups / {{ unassigned|length }} Unassigned</div>
+        </div>
+        <input type="text" id="dirSearch" placeholder="Search name or ID..." onkeyup="filterDirectory()">
+    </header>
+
+    <nav class="alpha-nav">
+        <a href="#section-unassigned">#</a>
+        {% for letter in alphabet %}
+        <a href="#letter-{{ letter }}">{{ letter }}</a>
+        {% endfor %}
+    </nav>
+
+    <main class="dir-body">
+        {# --- 1. UNASSIGNED SECTION --- #}
+        {% if unassigned %}
+        <section class="dir-section" id="section-unassigned">
+            <div class="dir-group-header unassigned">
+                <h2 class="g-title">Unassigned Members</h2>
+                <span class="g-meta">M-COUNT: {{ unassigned|length }}</span>
+            </div>
+            <div class="member-grid">
+                {% for m in unassigned %}
+                <div class="member-row" data-search="{{ m.member_name|lower }} {{ m.member_id }}">
+                    <span class="m-id">{{ m.member_id }}</span>
+                    <span class="m-name">{{ m.member_name }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+        {% endif %}
+
+        {# --- 2. GROUPS --- #}
+        {% for gname, gdata in grouped.items() %}
+        {% set jump_key = gname[0].upper() if gname[0].isalpha() else '#' %}
+        <section class="dir-section group-block" data-search-group="{{ gname|lower }}" id="letter-{{ jump_key }}">
+            <div class="dir-group-header">
+                <h2 class="g-title">{{ gname }} <small>{{ gdata.type or '' }}</small></h2>
+                <span class="g-meta">G-ID: {{ gdata.id }} | {{ gdata.members|length }} MEMBERS</span>
+            </div>
+            
+            <div class="member-grid">
+                {% if gdata.members %}
+                    {% for m in gdata.members %}
+                    <div class="member-row" data-search="{{ m.name|lower }} {{ m.id }}">
+                        <span class="m-id">{{ m.id }}</span>
+                        <span class="m-name">{{ m.name }}</span>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty-msg">No assigned members.</div>
+                {% endif %}
+            </div>
+        </section>
+        {% endfor %}
+    </main>
+</div>
+
+<script>
+    function filterDirectory() {
+        const q = document.getElementById('dirSearch').value.toLowerCase();
+        document.querySelectorAll('.dir-section').forEach(section => {
+            let hasMatch = false;
+            const rows = section.querySelectorAll('.member-row');
+            
+            rows.forEach(row => {
+                const text = row.getAttribute('data-search');
+                if (text.includes(q)) {
+                    row.style.display = 'flex';
+                    hasMatch = true;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+
+            // if the group name itself matches, show everything in it
+            const gName = section.getAttribute('data-search-group') || "";
+            if (gName.includes(q)) {
+                rows.forEach(r => r.style.display = 'flex');
+                hasMatch = true;
+            }
+
+            section.style.display = hasMatch ? 'block' : 'none';
+        });
+    }
+</script>
+{% endblock %}

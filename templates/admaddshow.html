@@ -1,0 +1,109 @@
+{% extends "admbase.html" %}
+
+{% block title %}entryShow{% endblock %}
+
+{% block extra_head %}<link rel="stylesheet" href="{{ url_for('static', filename='css/adminputforms.css') }}">{% endblock %}
+
+{% block content %}
+
+<div class="layout">
+
+<form method="POST" action="/addshow" enctype="multipart/form-data">
+
+    <!-- poster upload -->
+    <div class="poster-upload">
+        <label for="title_img">
+            <img id="posterPreview" src="{{ url_for('static', filename='pics/placeholder.jpg') }}" alt="Poster" />
+        </label>
+        <input type="file" id="title_img" name="title_img" accept="image/*" style="display: none;">
+    </div>
+    <br>
+
+    <!-- title + variety inline -->
+    <label for="title">Title:</label>
+    <div class="title-variety">
+        <input type="text" name="title" id="title" required>
+        <label class="variety-label">
+            <input type="checkbox" name="variety"> Variety
+        </label>
+    </div>
+    <br>
+
+    <!-- release year / seasons / episodes -->
+    <label for="releaseYear">Release Year:</label>
+    <input type="text" name="releaseYear" id="releaseYear"><br><br>
+
+    <div class="seasons-episodes">
+        <label class="seasode-label">Total Seasons:</label>
+        <input type="number" name="totalSeasons">
+
+        <label class="seasode-label">Total Episodes:</label>
+        <input type="number" name="totalEpisodes">
+    </div>
+
+
+    <!-- watch status dropdown -->
+    <label for="watchStatus">Watch Status:</label>
+    <select name="watchStatus" id="watchStatus">
+        <option value="">-- Select Status --</option>
+        <option value="Not Started">Not Started</option>
+        <option value="Watching">Watching</option>
+        <option value="Finished">Finished</option>
+    </select>
+    <br><br>
+
+    <!-- categories dropdown -->
+    <label>Categories:</label>
+    <div class="dropdown-checkbox">
+        <button type="button" class="dropbtn">Select Categories</button>
+        <div class="dropdown-content">
+            {% for c in categories %}
+                <label>
+                    <input type="checkbox" name="categories[]" value="{{ c.category_id }}">
+                    {{ c.category_name }}
+                </label>
+            {% endfor %}
+        </div>
+    </div>
+    <br><br>
+
+    <!-- groups dropdown -->
+    <label>Groups:</label>
+    <div class="dropdown-checkbox">
+        <button type="button" class="dropbtn">Select Groups</button>
+        <div class="dropdown-content">
+            <input type="text" class="dropdown-search" placeholder="Search...">
+            {% for g in groups %}
+                <label>
+                    <input type="checkbox" name="groups[]" value="{{ g.group_id }}">
+                    {{ g.group_name }}
+                </label>
+            {% endfor %}
+        </div>
+    </div>
+    <br><br>
+
+    <!-- members dropdown -->
+    <label>Members:</label>
+    <div class="dropdown-checkbox">
+        <button type="button" class="dropbtn">Select Members</button>
+        <div class="dropdown-content">
+            <input type="text" class="dropdown-search" placeholder="Search...">
+            {% for m in members %}
+                <label>
+                    <input type="checkbox" name="members[]" value="{{ m.member_id }}">
+                    {{ m.member_name }}{% if m.groups %} ({{ m.groups }}){% endif %}
+                </label>
+            {% endfor %}
+        </div>
+    </div>
+    <br><br>
+
+    <button type="submit">Add Show</button>
+</form>
+
+</div>
+
+<script src="{{ url_for('static', filename='js/forms.js') }}"></script>
+
+{% endblock %}

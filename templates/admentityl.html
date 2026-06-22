@@ -1,0 +1,149 @@
+{% extends "admbase.html" %}
+
+{% block title %}Entity L | Myrtrack{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admentityl.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="management-container">
+    <div class="page-header">
+        <h2>Tag/Label Management</h2>
+        <form method="GET" class="search-box">
+            <input type="text" name="q" placeholder="Search..." value="{{ search_q or '' }}">
+        </form>
+    </div>
+
+    <div class="dual-column-grid">
+        <div class="management-card">
+            <div class="card-top">
+                <h3>Livestream Tags</h3>
+                <button class="btn-add-toggle" onclick="toggleDisplay('add-tag-box')">Add New</button>
+            </div>
+
+            <div id="add-tag-box" class="inline-add-form" style="display: none;">
+                <form method="POST">
+                    <input type="hidden" name="action" value="insert_tag">
+                    <input type="text" name="name" placeholder="Tag Name" required>
+                    <select name="group_id">
+                        <option value="">Groups</option>
+                        {% for g in groups %}<option value="{{ g.group_id }}">{{ g.group_name }}</option>{% endfor %}
+                    </select>
+                    <button type="submit" class="btn-save">Insert</button>
+                </form>
+            </div>
+
+            <div class="table-viewport">
+                <table class="data-table">
+                    <thead>
+                        <tr><th>Tag</th><th>Group</th><th></th></tr>
+                    </thead>
+                    <tbody>
+                        {% for tag in tags %}
+                        <tr id="row-tag-{{ tag.tag_id }}">
+                            <form method="POST">
+                                <input type="hidden" name="action" value="update_tag">
+                                <input type="hidden" name="tag_id" value="{{ tag.tag_id }}">
+                                <td>
+                                    <span class="v-text">{{ tag.tag_name }}</span>
+                                    <input type="text" name="name" value="{{ tag.tag_name }}" class="e-input" style="display:none;">
+                                </td>
+                                <td>
+                                    <span class="v-text">{{ tag.group_name or '—' }}</span>
+                                    <select name="group_id" class="e-input" style="display:none;">
+                                        <option value="">Global</option>
+                                        {% for g in groups %}
+                                        <option value="{{ g.group_id }}" {% if g.group_id == tag.group_id %}selected{% endif %}>{{ g.group_name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </td>
+                                <td class="actions">
+                                    <button type="button" class="btn-pill btn-edit" onclick="toggleRowEdit('row-tag-{{ tag.tag_id }}')">Edit</button>
+                                    <button type="submit" class="btn-save" style="display:none;">Save</button>
+                                </td>
+                            </form>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="management-card">
+            <div class="card-top">
+                <h3>Season Labels</h3>
+                <button class="btn-add-toggle" onclick="toggleDisplay('add-season-box')">Add New</button>
+            </div>
+
+            <div id="add-season-box" class="inline-add-form" style="display: none;">
+                <form method="POST">
+                    <input type="hidden" name="action" value="insert_season">
+                    <select name="title_id" required>
+                        {% for s in shows %}<option value="{{ s.title_id }}">{{ s.title }}</option>{% endfor %}
+                    </select>
+                    <div style="display: flex; gap: 8px; margin-top: 5px;">
+                        <input type="text" name="s_num" placeholder="#" style="width: 60px;" required>
+                        <input type="text" name="s_name" placeholder="Label" style="flex: 1;" required>
+                        <button type="submit" class="btn-save" style="background: var(--accent-warm);">Insert</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="table-viewport">
+                <table class="data-table">
+                    <thead>
+                        <tr><th>Show</th><th>#</th><th>Label</th><th></th></tr>
+                    </thead>
+                    <tbody>
+                        {% for s in seasons %}
+                        <tr id="row-s-{{ s.title_id }}-{{ s.season_number }}">
+                            <form method="POST">
+                                <input type="hidden" name="action" value="update_season">
+                                <input type="hidden" name="title_id" value="{{ s.title_id }}">
+                                <input type="hidden" name="s_num" value="{{ s.season_number }}">
+                                <td>{{ s.title }}</td>
+                                <td><code>{{ s.season_number }}</code></td>
+                                <td>
+                                    <span class="v-text">{{ s.season_name }}</span>
+                                    <input type="text" name="s_name" value="{{ s.season_name }}" class="e-input" style="display:none;">
+                                </td>
+                                <td class="actions">
+                                    <button type="button" class="btn-pill btn-edit" onclick="toggleRowEdit('row-s-{{ s.title_id }}-{{ s.season_number }}')">Edit</button>
+                                    <button type="submit" class="btn-save" style="display:none;">Save</button>
+                                </td>
+                            </form>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// toggle for the 'Add New' forms
+function toggleDisplay(id) {
+    const el = document.getElementById(id);
+    el.style.display = (el.style.display === 'none') ? 'block' : 'none';
+}
+
+// toggle for the table row editing
+function toggleRowEdit(rowId) {
+    const row = document.getElementById(rowId);
+    const texts = row.querySelectorAll('.v-text');
+    const inputs = row.querySelectorAll('.e-input');
+    const editBtn = row.querySelector('.btn-edit');
+    const saveBtn = row.querySelector('.btn-save');
+
+    const isEditing = inputs[0].style.display !== 'none';
+
+    texts.forEach(t => t.style.display = isEditing ? 'inline' : 'none');
+    inputs.forEach(i => i.style.display = isEditing ? 'none' : 'block');
+    
+    editBtn.innerText = isEditing ? 'Edit' : 'Cancel';
+    saveBtn.style.display = isEditing ? 'none' : 'inline-block';
+}
+</script>
+{% endblock %}

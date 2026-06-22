@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Batch Editor - Media Database</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admbatchedit.css') }}">
+</head>
+<body> 
+
+{% if is_portfolio %}
+<div style="background: #e67e22; color: #fff; text-align: center; padding: 10px; font-size: 13px; font-weight: bold; letter-spacing: 0.5px; box-shadow: 0 2px 5px rgba(0,0,0,0.15); position: relative; z-index: 9999;">
+    ⚠️ PORTFOLIO SANDBOX MODE — System operations are simulated. Database writes are deactivated. — Database Last Update: 01.06.2026
+</div>
+{% endif %}
+
+<div class="app-layout">
+
+    <aside class="sidebar">
+        <div class="sidebar-search"><input type="text" id="libFilter" placeholder="Filter library..." onkeyup="filterNav()"></div>
+        <div class="sidebar-list">
+            {% for s in all_shows %}<div class="sidebar-item" data-id="{{s.title_id}}" onclick="loadWorkspace({{s.title_id}}, this)">{{s.title}}</div>{% endfor %}
+        </div> 
+    </aside>
+
+
+    <main class="main" id="mainWorkspace" style="display:none;">
+        <div class="section">
+            <div class="section-title">Show Metadata</div>
+            <div class="section-body">
+                <input type="hidden" id="m_id">
+                <div class="grid-meta">
+                    <div class="field"><label>Title</label><input type="text" id="m_title"></div>
+                    <div class="field"><label>Watch Status</label>
+                        <select id="m_status">
+                            <option value="None">None</option><option value="Watching">Watching</option><option value="Finished">Finished</option>
+                        </select>
+                    </div>
+                    <div class="field"><label>Year Range</label><input type="text" id="m_year"></div>
+                    <div class="field"><label>Total Seasons</label><input type="number" id="m_ts"></div>
+                    <div class="field"><label>Total Episodes</label><input type="number" id="m_te"></div>
+                    <div class="field" style="display:flex; align-items:center; gap:8px; padding-top:16px;">
+                        <input type="checkbox" id="m_v" style="width:16px; height:16px;"><label style="margin:0;">Variety Show</label>
+                    </div>
+                </div>
+                <div class="field" style="margin-top:15px;"><label>Poster Image Path</label><input type="text" id="m_img"></div>
+                <div class="field" style="margin-top:15px;">
+                    <label>Season Order</label>
+                    <div style="display:flex; gap:5px;">
+                        <input type="text" id="m_so" placeholder="1, 2, Pilot...">
+                        <button type="button" onclick="grabSeasons()" style="padding: 0 10px; background: #444; color: #fff; border: none; cursor: pointer; font-size: 10px;">SCAN</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">Categories & Ownership Management</div>
+            <div class="section-body ownership-container">
+                <div class="scroll-box">
+                    <label class="box-header">CATEGORIES</label>
+                    {% for c in categories %}<label><input type="checkbox" class="cat-cb" value="{{c.category_id}}"> {{c.category_name}}</label>{% endfor %}
+                </div>
+                <div class="scroll-box">
+                    <label class="box-header">OWNER GROUPS</label>
+                    {% for g in groups %}<label><input type="checkbox" class="grp-cb" value="{{g.group_id}}"> {{g.group_name}}</label>{% endfor %}
+                </div>
+                <div class="scroll-box">
+                    <label class="box-header">OWNER MEMBERS</label>
+                    {% for m in members %}
+                    <label>
+                        <input type="checkbox" class="mem-cb" value="{{m.member_id}}"> 
+                        {{m.member_name}}{% if m.group_names %} ({{m.group_names}}){% endif %}
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+            <div style="padding: 0 15px 15px 15px; background:var(--area-bg);">
+                <button class="btn-save-global" onclick="saveGlobal()">Save Show Changes</button>
+            </div>
+        </div>
+
+        <div class="workspace-split">
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr><th style="width:60px;">ID</th><th>VIDEO TITLE</th><th style="width:120px;">DATE</th><th style="width:50px;">S</th><th style="width:50px;">EP</th><th style="width:130px; text-align:center;">H G T M L S</th><th style="width:40px; text-align:center;">✎</th></tr>
+                    </thead>
+                    <tbody id="videoRows"></tbody>
+                </table>
+            </div>
+
+            <aside class="side-panel">
+                <div class="brush-header">Relational Brush</div>
+                <div style="display:flex; gap:2px; margin-bottom:10px;">
+                    <button onclick="setTabGroup('hgt')" class="tab-btn active hgt-btn">H/G/T</button>
+                    <button onclick="setTabGroup('m')" class="tab-btn m-btn">M</button>
+                    <button onclick="setTabGroup('l')" class="tab-btn l-btn">L</button>
+                    <button onclick="setTabGroup('s')" class="tab-btn s-btn">S</button>
+                </div>
+
+                <div id="panel-hgt" class="brush-panel active">
+                    <label class="brush-header">Groups</label>
+                    <select id="sel-hgt-g" onchange="addBrush(this)"></select>
+                    <label class="brush-header">Members</label>
+                    <select id="sel-hgt-m" onchange="addBrush(this)"></select>
+                </div>
+                <div id="panel-m" class="brush-panel">
+                    <label class="brush-header">MC Pairs</label>
+                    <select id="sel-m-mc" onchange="addBrush(this)"></select>
+                    <label class="brush-header">Individual Members</label>
+                    <select id="sel-m-m" onchange="addBrush(this)"></select>
+                </div>
+                <div id="panel-l" class="brush-panel">
+                    <label class="brush-header">Live Tags</label>
+                    <select id="sel-l" onchange="addBrush(this)"></select>
+                </div>
+                <div id="panel-s" class="brush-panel">
+                    <label class="brush-header">Music Recs/Songs List</label>
+                    <select id="sel-s" onchange="addBrush(this)"></select>
+                </div>
+
+                <div class="brush-header" style="margin-top:15px;">
+                    Loaded Brush
+                    <button class="btn-clear" onclick="clearBrush()">Clear</button>
+                </div>
+                <div id="brushList" class="scroll-box" style="height:75px; background:#1a1a1a; margin-bottom:10px; border:1px solid var(--accent);"></div>
+                <button class="btn-stamp" id="stampRelBtn" onclick="stampRel()" disabled>Stamp Relation</button>
+
+                <div style="margin-top:25px; border-top:1px solid #444; padding-top:15px;">
+                    <div class="brush-header">Metadata Brush (#<span id="targetDisplay">--</span>)</div>
+                    <input type="text" id="e_title" placeholder="Title">
+                    <div style="display:flex; gap:5px;"><input type="text" id="e_s" placeholder="S" style="width:50px;"><input type="text" id="e_e" placeholder="Ep" style="width:50px;"><input type="date" id="e_d" style="flex:1;"></div>
+                    
+                    <select id="e_ext">
+                        <option value="">-- Extras --</option>
+                        <option value="Teaser">Teaser</option>
+                        <option value="Behind">Behind</option>
+                        <option value="DVD">DVD</option>
+                        <option value="Extra">Extra</option>
+                    </select>
+                    
+                    <textarea id="e_notes" placeholder="Notes..." style="height:60px;"></textarea>
+                    
+                    <label style="font-size:11px; color:#bdc3c7;">
+                        <input type="checkbox" id="e_v" style="width:auto;"> Variety Mode
+                    </label>
+                    
+                    <button class="btn-stamp" id="saveEpBtn" onclick="saveEpMetadata()" disabled>Stamp Metadata</button>
+                </div>
+            </aside>
+        </div>
+    </main>
+</div>
+
+<script>
+    let activeVid = null, activeLetter = 'H', activeGroup = 'hgt', brush = [], vCache = [];
+    
+    const GR = [{% for g in groups %}{id:"g{{g.group_id or g[0]}}", name:"{{g.group_name or g[1]}}"},{% endfor %}];
+    const MB = [{% for m in members %}{id:"m{{m.member_id or m[0]}}", name:"{{m.member_name or m[1]}}", groups:"{{m.group_names or m[2]}}"},{% endfor %}];
+    const TG = [{% for t in tags %}{id:"t{{t.tag_id or t[0]}}", name:"{{t.tag_name or t[1]}}"},{% endfor %}];
+    const MC = [{% for m in mcs %}{id:"mc{{m.mc_id or m[0]}}", name:"{{m.mc_pairname or m[1]}}"},{% endfor %}];
+    const MCMB = [{% for mm in mc_members_list %}{id:"m{{mm.member_id or mm[0]}}_{{mm.group_id or mm[3]}}", name:"{{mm.member_name or mm[1]}} ({{mm.group_name or mm[2]}})"},{% endfor %}];
+    const SG = [{% for s in songs %}{id:"s{{s.song_id or s[0]}}", name:"{{s.artist or s[2]}} - {{s.songtitle or s[1]}}"},{% endfor %}];
+
+    function formatDate(dateStr) {
+        if (!dateStr) return "";
+        const d = new Date(dateStr);
+        return `${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}/${d.getFullYear()}`;
+    }
+
+    function escapeHTML(str) {
+        if (!str) return "";
+        return str.replace(/[&<>"']/g, function(m) {
+            return {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            }[m];
+        });
+    }
+
+    function loadWorkspace(id, el) {
+        const url = `${window.location.origin}${window.location.pathname}?id=${id}`;
+        window.history.pushState({path:url}, '', url);
+        document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
+        if (el) el.classList.add('active');
+
+        fetch(`/manage/batch/get-show-data/${id}`).then(r => r.json()).then(d => {
+            vCache = d.videos;
+            document.getElementById('m_id').value = d.show.title_id;
+            document.getElementById('m_title').value = d.show.title || '';
+            document.getElementById('m_status').value = d.show.watchStatus || 'None';
+            document.getElementById('m_year').value = d.show.releaseYear || '';
+            document.getElementById('m_ts').value = d.show.totalSeasons || '';
+            document.getElementById('m_te').value = d.show.totalEpisodes || '';
+            document.getElementById('m_img').value = d.show.title_img || '';
+            document.getElementById('m_so').value = d.show.season_order || '';
+            document.getElementById('m_v').checked = !!d.show.variety;
+
+            document.querySelectorAll('.cat-cb, .grp-cb, .mem-cb').forEach(cb => cb.checked = false);
+            d.cats.forEach(c => { const cb = document.querySelector(`.cat-cb[value="${c}"]`); if(cb) cb.checked = true; });
+            d.owns.forEach(o => {
+                if(o.group_id) { const cb = document.querySelector(`.grp-cb[value="${o.group_id}"]`); if(cb) cb.checked = true; }
+                if(o.member_id) { const cb = document.querySelector(`.mem-cb[value="${o.member_id}"]`); if(cb) cb.checked = true; }
+            });
+
+            document.getElementById('videoRows').innerHTML = d.videos.map(v => `
+                <tr id="row-${v.video_id}">
+                    <td><div class="td-center" style="color:#888;">#${v.video_id}</div></td>
+                    <td class="v-title-cell">${escapeHTML(v.video_title)}</td>
+                    <td><div class="td-center">${formatDate(v.releaseDate)}</div></td>
+                    <td><div class="td-center">${v.season || ''}</div></td>
+                    <td><div class="td-center">${v.episodeNumber || ''}</div></td>
+                    <td>
+                        <div class="role-group">
+                            <span class="role-trigger trigger-h ${v.has_h?'active':''}" onclick="setPinFocus(${v.video_id},'H')">H</span>
+                            <span class="role-trigger trigger-g ${v.has_g?'active':''}" onclick="setPinFocus(${v.video_id},'G')">G</span>
+                            <span class="role-trigger trigger-t ${v.has_t?'active':''}" onclick="setPinFocus(${v.video_id},'T')">T</span>
+                            <span class="role-trigger trigger-m ${v.has_m?'active':''}" onclick="setPinFocus(${v.video_id},'M')">M</span>
+                            <span class="role-trigger trigger-l ${v.has_l?'active':''}" onclick="setPinFocus(${v.video_id},'L')">L</span>
+                            <span class="role-trigger trigger-s ${v.has_s?'active':''}" onclick="setPinFocus(${v.video_id},'S')">S</span>
+                        </div>
+                    </td>
+                    <td><div class="td-center" style="cursor:pointer; color:var(--accent);" onclick="loadMeta(${v.video_id})">✎</div></td>
+                </tr>`).join('');
+            document.getElementById('mainWorkspace').style.display = 'block';
+            populateBrushOptions();
+        });
+    }
+
+    function setTabGroup(group) {
+        activeGroup = group;
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelector(`.${group}-btn`).classList.add('active');
+        document.querySelectorAll('.brush-panel').forEach(p => p.classList.remove('active'));
+        document.getElementById(`panel-${group}`).classList.add('active');
+    }
+
+    function setPinFocus(vid, letter) {
+        activeVid = vid; activeLetter = letter;
+        highlightRow(vid);
+        const g = ['H','G','T'].includes(letter) ? 'hgt' : letter.toLowerCase();
+        setTabGroup(g);
+        syncBrush();
+        const btn = document.getElementById('stampRelBtn');
+        btn.disabled = false; btn.innerText = `STAMP ${letter} ON #${vid}`;
+    }
+
+    function populateBrushOptions() {
+        document.getElementById('sel-hgt-g').innerHTML = '<option value="">-- Group --</option>' + GR.map(g => `<option value="${g.id}">${g.name}</option>`).join('');
+        
+        document.getElementById('sel-hgt-m').innerHTML = '<option value="">-- Member --</option>' + MB.map(m => {
+            const groupInfo = m.groups && m.groups !== "None" ? ` (${m.groups})` : "";
+            return `<option value="${m.id}">${m.name}${groupInfo}</option>`;
+        }).join('');
+        
+        document.getElementById('sel-m-mc').innerHTML = '<option value="">-- MC Pair --</option>' + MC.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
+        document.getElementById('sel-m-m').innerHTML = '<option value="">-- Member --</option>' + MCMB.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
+        document.getElementById('sel-l').innerHTML = '<option value="">-- Tag --</option>' + TG.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+        document.getElementById('sel-s').innerHTML = '<option value="">-- Song --</option>' + SG.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+    }
+
+    function addBrush(sel) {
+        if(!sel.value) return;
+        if(!brush.find(i => i.id === sel.value)) brush.push({id: sel.value, name: sel.options[sel.selectedIndex].text});
+        drawBrush(); sel.selectedIndex = 0;
+    }
+
+    function drawBrush() {
+        document.getElementById('brushList').innerHTML = brush.map((i, idx) => `<div style="background:#34495e; padding:3px 6px; margin:2px; display:inline-block; border-radius:3px; font-size:10px;">${i.name} <span onclick="brush.splice(${idx},1);drawBrush()" style="cursor:pointer;color:var(--accent)">×</span></div>`).join('');
+    }
+
+    function clearBrush() {
+        brush = [];
+        drawBrush();
+    }
+
+    function syncBrush() {
+        fetch(`/manage/batch/get-relations/${activeLetter}/${activeVid}`).then(r => r.json()).then(d => {
+            brush = d.current_relations.map(id => {
+                let n = "Unknown";
+                if(id.startsWith('mc')) {
+                    n = MC.find(x => x.id === id)?.name;
+                }
+                else if(id.startsWith('m') && id.includes('_')) {
+                    n = MCMB.find(x => x.id === id)?.name;
+                }
+                else if(id.startsWith('g')) {
+                    n = GR.find(x => x.id === id)?.name;
+                }
+                else if(id.startsWith('m')) {
+                    const mObj = MB.find(x => x.id === id);
+                    if (mObj) {
+                        const groupInfo = mObj.groups && mObj.groups !== "None" ? ` (${mObj.groups})` : "";
+                        n = mObj.name + groupInfo;
+                    }
+                }
+                else if(id.startsWith('t')) {
+                    n = TG.find(x => x.id === id)?.name;
+                }
+                else if(id.startsWith('s')) {
+                    n = SG.find(x => x.id === id)?.name;
+                }
+                return {id, name: n || id};
+            });
+            drawBrush();
+        });
+    }
+
+    function stampRel() {
+        fetch('/manage/batch/stamp-relation', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ video_id: activeVid, table: activeLetter, ids: brush.map(i => i.id) }) }).then(r => r.json()).then(d => { 
+            if(d.success) {
+                const pin = document.querySelector(`#row-${activeVid} .trigger-${activeLetter.toLowerCase()}`);
+                if (brush.length > 0) pin.classList.add('active');
+                else pin.classList.remove('active');
+            }
+        });
+    }
+
+    function loadMeta(vid) {
+        activeVid = vid; highlightRow(vid);
+        const v = vCache.find(x => x.video_id == vid);
+        document.getElementById('targetDisplay').innerText = vid;
+        document.getElementById('e_title').value = v.video_title || '';
+        document.getElementById('e_s').value = v.season || '';
+        document.getElementById('e_e').value = v.episodeNumber || '';
+        
+        if (v.releaseDate) {
+            document.getElementById('e_d').value = new Date(v.releaseDate).toISOString().split('T')[0];
+        } else {
+            document.getElementById('e_d').value = "";
+        }
+        
+        document.getElementById('e_ext').value = v.title_extras || '';
+        document.getElementById('e_notes').value = v.video_notes || '';
+        if(document.getElementById('e_v')) document.getElementById('e_v').checked = !!v.is_variety;
+        document.getElementById('saveEpBtn').disabled = false;
+    }
+
+    function saveEpMetadata() {
+        const p = { 
+            id: activeVid, 
+            title: document.getElementById('e_title').value, 
+            season: document.getElementById('e_s').value, 
+            ep: document.getElementById('e_e').value, 
+            date: document.getElementById('e_d').value, 
+            notes: document.getElementById('e_notes').value,
+            is_var: document.getElementById('e_v').checked,
+            extras: document.getElementById('e_ext').value
+        };
+        fetch('/manage/batch/save-single-video', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(p) }).then(r => r.json()).then(res => {
+            if(res.success) {
+                const r = document.getElementById(`row-${activeVid}`);
+                r.cells[1].innerHTML = escapeHTML(p.title);
+                r.cells[2].querySelector('.td-center').innerText = formatDate(p.date);
+                r.cells[3].querySelector('.td-center').innerText = p.season;
+                r.cells[4].querySelector('.td-center').innerText = p.ep;
+                const idx = vCache.findIndex(x => x.video_id == activeVid);
+                vCache[idx] = {...vCache[idx], ...p, video_title: p.title, releaseDate: p.date, is_variety: p.is_var, title_extras: p.extras};
+                r.style.background = '#e8f5e9'; setTimeout(() => r.style.background = '', 500);
+            }
+        });
+    }
+
+    function saveGlobal() {
+        const payload = {
+            title_id: document.getElementById('m_id').value,
+            title: document.getElementById('m_title').value,
+            watchStatus: document.getElementById('m_status').value,
+            releaseYear: document.getElementById('m_year').value,
+            totalSeasons: document.getElementById('m_ts').value,
+            totalEpisodes: document.getElementById('m_te').value,
+            variety: document.getElementById('m_v').checked,
+            title_img: document.getElementById('m_img').value,
+            season_order: document.getElementById('m_so').value,
+            categories: Array.from(document.querySelectorAll('.cat-cb:checked')).map(c => c.value),
+            groups: Array.from(document.querySelectorAll('.grp-cb:checked')).map(c => c.value),
+            members: Array.from(document.querySelectorAll('.mem-cb:checked')).map(c => c.value)
+        };
+
+        fetch('/manage/batch/save-show', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload)
+        })
+        .then(response => {
+            if (!response.ok) throw new Error('Server returned ' + response.status);
+            return response.json();
+        })
+        .then(d => {
+            if (d.success) {
+                showToast("Show Metadata Saved");
+            } else {
+                alert("Save failed: " + d.error);
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            showToast("Metadata Saved (Response ignored)");
+        });
+    }
+
+    function highlightRow(vid) { document.querySelectorAll('tr').forEach(r => r.classList.toggle('active-row', r.id === `row-${vid}`)); }
+    function filterNav() { const v = document.getElementById('libFilter').value.toLowerCase(); document.querySelectorAll('.sidebar-item').forEach(i => i.style.display = i.innerText.toLowerCase().includes(v) ? '' : 'none'); }
+    function grabSeasons() { let s = Array.from(new Set(vCache.map(v => v.season).filter(x => x))).sort((a,b)=>a.localeCompare(b,undefined,{numeric:true})); document.getElementById('m_so').value = s.join(', '); }
+
+    document.addEventListener("DOMContentLoaded", () => {
+        const id = new URLSearchParams(window.location.search).get('id');
+        if (id) loadWorkspace(id, null);
+    });
+</script>
+</body>
+</html>
