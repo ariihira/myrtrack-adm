@@ -1031,13 +1031,29 @@ def savetriage():
 def ktimeline():
     selected_groups = request.args.getlist('groups')
 
-    all_videos = time.alltimeline(selected_group_names=selected_groups)
+    # Capture year parameter if explicitly provided in URL
+    raw_year = request.args.get('year')
+    available_years = list(range(2013, 2027))
+    
+    if raw_year and raw_year.isdigit():
+        selected_year = int(raw_year)
+        # Fetch entries ONLY when a year is selected
+        all_videos = time.alltimeline(
+            selected_group_names=selected_groups,
+            selected_year=selected_year
+        )
+    else:
+        selected_year = None
+        all_videos = []
+
 
     if IS_PORTFOLIO:   
-        return render_template('admktimeline.html', 
-                               videos=all_videos, 
-                               all_groups=load_portfolio_data('kgroups'), 
-                               selected_groups=selected_groups)
+        return render_template('admktimeline.html',
+                            videos=all_videos, 
+                            all_groups=[],
+                            selected_groups=selected_groups,
+                            selected_year=selected_year,
+                            available_years=available_years)
     
     cursor = con.get_db()
     if not cursor:
@@ -1051,15 +1067,19 @@ def ktimeline():
         all_groups = cursor.fetchall()
 
         return render_template('admktimeline.html',
-                               videos=all_videos, 
-                               all_groups=all_groups,
-                               selected_groups=selected_groups)
+                            videos=all_videos, 
+                            all_groups=all_groups,
+                            selected_groups=selected_groups,
+                            selected_year=selected_year,
+                            available_years=available_years)
                                
     except Exception as e:
-        return render_template('admktimeline.html', 
-                               videos=all_videos, 
-                               all_groups=[], 
-                               selected_groups=selected_groups)
+        return render_template('admktimeline.html',
+                            videos=all_videos, 
+                            all_groups=all_groups,
+                            selected_groups=selected_groups,
+                            selected_year=selected_year,
+                            available_years=available_years)
                                
     finally:
         cursor.close()
