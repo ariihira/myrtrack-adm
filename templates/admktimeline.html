@@ -41,6 +41,16 @@
         </div>
     </header>
 
+    <nav class="kt-year-nav">
+        {% for yr in available_years %}
+            {# Preserves selected groups when clicking between years #}
+            <a href="{{ url_for('ktimeline', year=yr, groups=selected_groups) }}" 
+               class="kt-year-link {% if selected_year and yr == selected_year %}active{% endif %}">
+                {{ yr }}
+            </a>
+        {% endfor %}
+    </nav>
+
     {% if videos %}
         <div class="kt-stream">
             {% for item in videos %}
@@ -133,7 +143,7 @@
             {% endfor %}
         </div>
     {% else %}
-        <div class="kt-empty">No videos found for the selected criteria.</div>
+        <div class="kt-empty">Please select a year above to view the timeline.</div>
     {% endif %}
 </div>
 

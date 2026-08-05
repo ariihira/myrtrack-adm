@@ -27,7 +27,7 @@ def get_livestream_timeline_data(streams, video_music_map):
     return timeline_data
 
 
-def alltimeline(excluded_category_ids=None, selected_group_names=None):
+def alltimeline(excluded_category_ids=None, selected_group_names=None, selected_year=None):
     """
     Fetches processed video records matching complex priority rules.
     Seamlessly supports both production MySQL execution and decoupled static Portfolio environments.
@@ -114,11 +114,20 @@ def alltimeline(excluded_category_ids=None, selected_group_names=None):
             processed_videos = []
             for v in raw_videos:
                 # Replicate releaseDate checks and filter hidden web statuses safely
-                if v.get('webstatus') == 'hide' or not v.get('releaseDate'):
+                rel_date = str(v.get('releaseDate') or '')
+                if v.get('webstatus') == 'hide' or not rel_date:
                     continue
+
+                # Add Year Filter Condition matching SQL: AND YEAR(v.releaseDate) = %s
+                if selected_year:
+                    v_year = rel_date[:4] if len(rel_date) >= 4 else ''
+                    if str(v_year) != str(selected_year):
+                        continue
                     
                 v_id = str(v.get('video_id'))
                 target_show_ids = video_to_shows.get(v_id, [])
+                if not target_show_ids: 
+                    continue
                 
                 # We join all showtitle categories, but the crucial filter is in the WHERE clause below.
                 associated_cats = []
@@ -134,8 +143,6 @@ def alltimeline(excluded_category_ids=None, selected_group_names=None):
                 # AND have at least one associated show title NOT in the excluded categories.
                 if clean_excluded_ids and all(c in clean_excluded_ids for c in associated_cats):
                     continue
-                if not target_show_ids: 
-                    continue
 
                 has_host_rel = any(str(h.get('video_id')) == v_id for h in host_rows)
                 has_guest_rel = any(str(g.get('video_id')) == v_id for g in guest_rows)
@@ -150,10 +157,17 @@ def alltimeline(excluded_category_ids=None, selected_group_names=None):
                 # group filter & checks if any of the relational intersections link back to the filtered groups
                 if selected_group_names:
                     match_group_found = False
-                    # Checked via Show Ownership & Condition A: Show is not in a conditional category
-                    if not any(c in categories_conditional_ignore for c in associated_cats):
-                        if any(own in selected_group_names for own in associated_owners):
-                            match_group_found = True
+
+                    # Checked via Show Ownership (matching per-show category restriction from SQL)
+                    for tid in target_show_ids:
+                        tid_cats = show_to_cats.get(tid, [])
+                        # Show title must not belong to conditional categories (1, 4, 5, 7)
+                        if not any(c in categories_conditional_ignore for c in tid_cats):
+                            tid_owners = show_to_owners.get(tid, [])
+                            if any(own in selected_group_names for own in tid_owners):
+                                match_group_found = True
+                                break
+
                     # Checked via Host, Guest, Tiny Guest, or MC Entity Relations
                     if not match_group_found:
                         for row_list, key_lbl in [(host_rows, 'group_id'), (guest_rows, 'group_id'), (tiny_rows, 'group_id'), (mc_rows, 'group_id')]:
@@ -161,8 +175,11 @@ def alltimeline(excluded_category_ids=None, selected_group_names=None):
                                 if str(r.get('video_id')) == v_id and groups_map.get(str(r.get(key_lbl))) in selected_group_names:
                                     match_group_found = True
                                     break
+                            if match_group_found:
+                                break
+
                     if not match_group_found:
-                        continue 
+                        continue
 
                 v_record = {
                     'video_id': v.get('video_id'),
@@ -209,18 +226,24 @@ def alltimeline(excluded_category_ids=None, selected_group_names=None):
                     video_guest_map.setdefault(vid, {'members': [], 'groups': []})
                     mid = str(vg.get('member_id') or '')
                     gid = str(vg.get('group_id') or '')
+
+                    guest_group = groups_map.get(gid)
                     
                     # attach guests to videos
                     if mid in members_map:
                         m_obj = members_map[mid]
                         m_group = m_obj.get('groups', '').split(',')[0].strip() if m_obj.get('groups') else None
-                        video_guest_map[vid]['members'].append({
-                            'name': m_obj.get('member_name'),
-                            'group': groups_map.get(gid) or m_group
-                        })
-                    elif gid in groups_map:
-                        if groups_map[gid] not in video_guest_map[vid]['groups']:
-                            video_guest_map[vid]['groups'].append(groups_map[gid])
+
+                        # Match SQL condition: WHERE (guest_group IS NULL OR member_group = guest_group)
+                        if not guest_group or m_group == guest_group:
+                            video_guest_map[vid]['members'].append({
+                                'name': m_obj.get('member_name'),
+                                'group': m_group
+                            })
+
+                    elif guest_group:
+                        if guest_group not in video_guest_map[vid]['groups']:
+                            video_guest_map[vid]['groups'].append(guest_group)
 
             # fetch all individual mc records
             for vmc in mc_rows:
@@ -235,6 +258,10 @@ def alltimeline(excluded_category_ids=None, selected_group_names=None):
                             'name': members_map[mid].get('member_name'),
                             'group': groups_map.get(gid)
                         })
+
+            # Sort MC entries to mirror SQL ordering
+            for vid in video_mc_map:
+                video_mc_map[vid].sort(key=lambda x: (x['group'] or '', x['name'] or ''))
 
         except Exception as portfolio_err:
             print(f"⚠️ Portfolio simulation error encountered: {str(portfolio_err)}")
@@ -254,21 +281,20 @@ def alltimeline(excluded_category_ids=None, selected_group_names=None):
 
             # ownership is ignored if a video host or MC is present
             categories_conditional_ignore = [1, 4, 5, 7]
-            conditional_ignore_str = ",".join(str(cid) for cid in categories_conditional_ignore)
-
-            # video is excluded unless a host, guest, or tiny guest is present
-            conditional_excluded_ids = [1, 4, 5, 6, 16]
-            conditional_ids_str = ",".join(str(cid) for cid in conditional_excluded_ids)
 
             # ensure excluded_category_ids is a clean list
             if excluded_category_ids is None:
                 clean_excluded_ids = [17, 18]
             elif not isinstance(excluded_category_ids, list):
-                try: clean_excluded_ids = [int(excluded_category_ids)]
-                except (ValueError, TypeError): clean_excluded_ids = []
+                try: 
+                    clean_excluded_ids = [int(excluded_category_ids)]
+                except (ValueError, TypeError): 
+                    clean_excluded_ids = []
             else:
-                try: clean_excluded_ids = [int(x) for x in excluded_category_ids]
-                except (ValueError, TypeError): clean_excluded_ids = []
+                try: 
+                    clean_excluded_ids = [int(x) for x in excluded_category_ids]
+                except (ValueError, TypeError): 
+                    clean_excluded_ids = []
 
             # setup list parameters for SQL injection execution
             query_params = list(clean_excluded_ids)
@@ -296,12 +322,9 @@ def alltimeline(excluded_category_ids=None, selected_group_names=None):
                         LEFT JOIN showtitle_category st_c ON v_st.title_id = st_c.title_id
                         WHERE v_st.video_id = v.video_id 
                           AND g_own.group_name IN ({group_placeholders})
-                          AND (
-                              -- Condition A: Show is not in a conditional category
-                              NOT EXISTS (
-                                   SELECT 1 FROM showtitle_category st_c2 
-                                   WHERE st_c2.title_id = v_st.title_id AND st_c2.category_id IN ({conditional_ignore_str})
-                               )
+                          AND NOT EXISTS (
+                              SELECT 1 FROM showtitle_category st_c2 
+                              WHERE st_c2.title_id = v_st.title_id AND st_c2.category_id IN (1, 4, 5, 7)
                           )
                     )
                     -- Checked via Host Entity Relation
@@ -331,6 +354,12 @@ def alltimeline(excluded_category_ids=None, selected_group_names=None):
                 )
                 """
 
+            # Add Year Filter Condition to query params if selected_year is provided
+            year_clause = ""
+            if selected_year:
+                year_clause = "AND YEAR(v.releaseDate) = %s"
+                query_params.append(selected_year)
+
             # fetch videos 
             query = f"""
             SELECT 
@@ -345,14 +374,14 @@ def alltimeline(excluded_category_ids=None, selected_group_names=None):
 
                 -- Only allowed shows (those not in excluded categories)
                 GROUP_CONCAT(DISTINCT s.title ORDER BY s.title SEPARATOR ', ') AS show_titles,
-
                 GROUP_CONCAT(DISTINCT sc.category_id) AS category_ids,
                 
                 -- 1. HOST LOGIC
                 EXISTS (SELECT 1 FROM videohost vh WHERE vh.video_id = v.video_id) AS is_host,
-                (SELECT g2.group_name FROM videohost vh2 
-                 JOIN kgroups g2 ON vh2.group_id = g2.group_id 
-                 WHERE vh2.video_id = v.video_id LIMIT 1) AS host_group_name,
+                (SELECT GROUP_CONCAT(DISTINCT g2.group_name ORDER BY g2.group_name SEPARATOR ', ') 
+                FROM videohost vh2
+                JOIN kgroups g2 ON vh2.group_id = g2.group_id 
+                WHERE vh2.video_id = v.video_id) AS host_group_name,
 
                 -- 2. MC LOGIC (fetch specific MC group names)
                 EXISTS (SELECT 1 FROM videomushowmc vmc WHERE vmc.video_id = v.video_id) AS has_mc,
@@ -363,7 +392,6 @@ def alltimeline(excluded_category_ids=None, selected_group_names=None):
 
                 -- 3. OWNER LOGIC
                 IFNULL(GROUP_CONCAT(DISTINCT g.group_name ORDER BY g.group_name SEPARATOR ', '), '') AS owning_groups,
-                
                 'video' AS item_type
 
             FROM video v
@@ -394,13 +422,14 @@ def alltimeline(excluded_category_ids=None, selected_group_names=None):
                         SELECT 1 
                         FROM video_showtitle vs3
                         JOIN showtitle_category sc3 ON vs3.title_id = sc3.title_id
-                        WHERE vs3.video_id = v.video_id AND sc3.category_id IN ({conditional_ids_str})
+                        WHERE vs3.video_id = v.video_id AND sc3.category_id IN (1, 4, 5, 6, 16)
                     )
                     OR EXISTS (SELECT 1 FROM videohost WHERE video_id = v.video_id)
                     OR EXISTS (SELECT 1 FROM videoguest WHERE video_id = v.video_id)
                     OR EXISTS (SELECT 1 FROM tinyguest WHERE video_id = v.video_id)
                 )
                 {group_filter_clause}
+                {year_clause}
 
             GROUP BY v.video_id
             ORDER BY v.releaseDate ASC, v.video_id ASC
@@ -418,8 +447,9 @@ def alltimeline(excluded_category_ids=None, selected_group_names=None):
 
             if video_ids:
                 format_strings = ','.join(['%s'] * len(video_ids))
+                video_ids_tuple = tuple(video_ids)
 
-                # fetch all guests for these videos
+                # fetch guests
                 cursor.execute(f"""
                     SELECT vg.video_id, m.member_name, g1.group_name AS member_group, g2.group_name AS guest_group
                     FROM videoguest vg
@@ -429,28 +459,45 @@ def alltimeline(excluded_category_ids=None, selected_group_names=None):
                     LEFT JOIN kgroups g2 ON vg.group_id = g2.group_id
                     WHERE vg.video_id IN ({format_strings})
                 """, tuple(video_ids))
+                guest_rows = cursor.fetchall()
 
                 # attach guests to videos
-                for row in cursor.fetchall():
+                for row in guest_rows:
                     vid = row['video_id']
-                    video_guest_map.setdefault(vid, {'members': [], 'groups': []})
-                    if row['member_name']:
-                        if not row['guest_group'] or row['member_group'] == row['guest_group']:
-                            video_guest_map[vid]['members'].append({'name': row['member_name'], 'group': row['member_group']})
-                    elif row['guest_group'] and row['guest_group'] not in video_guest_map[vid]['groups']:
-                        video_guest_map[vid]['groups'].append(row['guest_group'])
+                    if vid not in video_guest_map:
+                        video_guest_map[vid] = {'members': [], 'groups': []}
 
-                # fetch all individual mc records
+                    guest_group = row['guest_group']
+                    
+                    if row['member_name']:
+                        if not guest_group or row['member_group'] ==guest_group:
+                            video_guest_map[vid]['members'].append({
+                                'name': row['member_name'], 
+                                'group': row['member_group']
+                            })
+                    elif guest_group: 
+                        if guest_group not in video_guest_map[vid]['groups']:
+                            video_guest_map[vid]['groups'].append(guest_group)
+
+                # fetch mcs
                 cursor.execute(f"""
-                    SELECT vmc.video_id, m.member_name, g.group_name FROM videomushowmc vmc
+                    SELECT vmc.video_id, m.member_name, g.group_name 
+                    FROM videomushowmc vmc
                     JOIN members m ON vmc.member_id = m.member_id
                     LEFT JOIN kgroups g ON vmc.group_id = g.group_id
-                    WHERE vmc.video_id IN ({format_strings}) ORDER BY g.group_name ASC, m.member_name ASC
-                """, tuple(video_ids))
+                    WHERE vmc.video_id IN ({format_strings}) 
+                    ORDER BY g.group_name ASC, m.member_name ASC
+                """, video_ids_tuple)
+                mc_rows = cursor.fetchall()
 
                 # attach mc to videos
-                for row in cursor.fetchall():
-                    video_mc_map.setdefault(row['video_id'], []).append({'name': row['member_name'], 'group': row['group_name']})
+                for row in mc_rows:
+                    vid = row['video_id']        
+                    video_mc_map.setdefault(vid, [])
+                    video_mc_map[vid].append({
+                        'name': row['member_name'], 
+                        'group': row['group_name']
+                    })
 
         except Exception:
             return []
@@ -472,7 +519,7 @@ def alltimeline(excluded_category_ids=None, selected_group_names=None):
             v['season'] = ''
 
         # clear 'owning_groups' if categories 1, 7, or 9 are present
-        category_ids_str = v.get('category_ids', '')
+        category_ids_str = v.pop('category_ids', '')
         has_conditional_category = False
     
         if category_ids_str:
@@ -517,7 +564,7 @@ def alltimeline(excluded_category_ids=None, selected_group_names=None):
             # 1. HOST PRIORITY (Rules 1, 2, 3)
             # "owner groups as host + multi -> host", "1 group owner -> group", "host + no owner -> host"
             if v.get('is_host'):
-                v['display_group'] = v.get('host_group_name') or v.get('owning_groups', '').split(',')[0]
+                v['display_group'] = v.get('host_group_name') or v.get('owning_groups', '')
             # 2. MC PRIORITY (Rule 4)
             # "music show mc -> all group name as mc in that video"
             elif v.get('has_mc'):
@@ -528,12 +575,14 @@ def alltimeline(excluded_category_ids=None, selected_group_names=None):
                 # Extracting only group names from the new "Group (Member)" format
                 unique_groups = set()
                 # get all known group names for this specific video
+                v_g_data = video_guest_map.get(v['video_id'], {'members': [], 'groups': []})
                 known_groups = set(v_g_data['groups'])
                 for m in v_g_data['members']:
                     known_groups.add(m['group'])
 
                 # split the display string by the bullet
-                for segment in v['guest_display'].split(' • '):
+                segments = v['guest_display'].split(' • ')
+                for segment in segments:
                     segment = segment.strip()
                     # check if the segment IS exactly a known group
                     if segment in known_groups:
@@ -541,7 +590,8 @@ def alltimeline(excluded_category_ids=None, selected_group_names=None):
                         continue
                     # check for "Group (Member, Member)" format
                     if "(" in segment:
-                        unique_groups.add(segment.split('(')[0].strip())
+                        group_name = segment.split('(')[0].strip()
+                        unique_groups.add(group_name)
                     # scenario b: Group Name MemberName -> find last space
                     elif " " in segment:
                         # iterate through known groups to see if the segment STARTS with one
