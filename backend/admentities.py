@@ -56,7 +56,7 @@ def insert_group(data):
     
     params = (
         data['group_name'], 
-        data.get('group_desc'), 
+        data.get('group_desc') or None, 
         data.get('grouptype') or None,
         data.get('parent_id') or None,
         data.get('debutdate') or None
@@ -100,8 +100,50 @@ def update_group(group_id, data):
         data.get('debutdate') or None,
         group_id
     )
-    cursor.execute(sql, params)
-    db_connect.connection.commit()
+
+    try:
+        cursor.execute(sql, params)
+        db_connect.connection.commit()
+        return True
+    except Exception:
+        db_connect.connection.rollback()
+        return False
+    finally:
+        cursor.close()
+
+def insert_member(data):
+    """
+    Inserts a new member record and populates associated groups in member_groups junction table.
+    """
+    cursor = get_db()
+    if not cursor:
+        return False
+
+    try:
+        # 1. Insert Member Name into 'members' table
+        cursor.execute("INSERT INTO members (member_name) VALUES (%s)", (data['member_name'],))
+        member_id = cursor.lastrowid
+        
+        # 2. Get the list of selected group IDs from the custom checkbox multiselect
+        group_ids = data.getlist('group_ids')
+        
+        # 3. Populate relational links in the member_groups junction table
+        for g_id in group_ids:
+            if g_id: # Make sure it's not empty
+                cursor.execute("""
+                    INSERT INTO member_groups (member_id, group_id) 
+                    VALUES (%s, %s)
+                """, (member_id, int(g_id)))
+                
+        db_connect.connection.commit()
+        return True
+
+    except Exception:
+        db_connect.connection.rollback()
+        return False
+
+    finally:
+        cursor.close()
 
 def update_member_groups(member_id, data):
     """

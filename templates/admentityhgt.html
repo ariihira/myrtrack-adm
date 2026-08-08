@@ -10,179 +10,276 @@
 <div class="management-container">
     <div class="page-header">
         <h2>Groups & Members Management</h2>
-        <form method="GET" class="search-container">
-            <input type="text" name="q" placeholder="Search entries..." value="{{ search_q or '' }}">
-        </form>
+        <div class="search-container">
+            <input type="text" id="client-search" placeholder="Filter current view..." onkeyup="filterTable()">
+        </div>
     </div>
 
     <div class="dual-layout">
         <aside class="sidebar-forms">
-            <div class="add-card">
-                <h3>New Group</h3>
-                <form method="POST">
-                    <input type="hidden" name="action" value="insert_group">
-                    <input type="text" name="group_name" placeholder="Group Name" required>
-                    <select name="grouptype">
-                        <option value="">-- Type --</option>
-                        <option value="bg">Boy Group</option>
-                        <option value="gg">Girl Group</option>
-                        <option value="solo">Soloist</option>
-                        <option value="subunit">Subunit</option>
-                    </select>
-                    <select name="parent_id">
-                        <option value="">Parent Group (None)</option>
-                        {% for g in groups %}<option value="{{ g.group_id }}">{{ g.group_name }}</option>{% endfor %}
-                    </select>
-                    <input type="date" name="debutdate">
-                    <button type="submit" class="btn-save">Create Group</button>
-                </form>
-            </div>
-
-            <div class="add-card" style="margin-top:20px;">
-                <h3>New Member</h3>
-                <form method="POST">
-                    <input type="hidden" name="action" value="insert_member">
-                    <input type="text" name="member_name" placeholder="Stage Name" required>
-                    <div class="custom-multiselect">
-                        <div class="select-box" onclick="toggleArea('add-m-list')">
-                            <span id="add-m-label">Assign Groups</span>
-                        </div>
-                        <div id="add-m-list" class="checkboxes-area">
+            <div class="sticky-panel-stack">
+                
+                <!-- Group Form Panel -->
+                <div id="group-form-card" class="add-card">
+                    <h3 id="group-card-title">New Group Entry</h3>
+                    <form method="POST" id="group-html-form">
+                        <input type="hidden" name="action" id="group-action-toggle" value="insert_group">
+                        <input type="hidden" name="group_id" id="group-primary-id" value="">
+                        
+                        <input type="text" name="group_name" id="g-input-name" placeholder="Group Name" required>
+                        
+                        <select name="grouptype" id="g-input-type">
+                            <option value="">-- Select Type --</option>
+                            <option value="bg">Boygroup</option>
+                            <option value="gg">Girlgroup</option>
+                            <option value="band">Band</option>
+                            <option value="solo">Soloist</option>
+                            <option value="subunit">Subunit</option>
+                        </select>
+                        
+                        <select name="parent_id" id="g-input-parent">
+                            <option value="">Parent Group (None)</option>
                             {% for g in groups %}
-                            <label class="check-item">
-                                <input type="checkbox" name="group_ids" value="{{ g.group_id }}" onchange="updateLabel('add-m-list', 'add-m-label')">
-                                {{ g.group_name }}
-                            </label>
+                            <option value="{{ g.group_id }}">{{ g.group_name }}</option>
                             {% endfor %}
+                        </select>
+                        
+                        <input type="date" name="debutdate" id="g-input-debut">
+                        
+                        <button type="submit" class="btn-save" id="g-submit-btn">Create Group</button>
+                        <button type="button" class="btn-cancel is-hidden" id="g-cancel-btn" onclick="resetGroupForm()">Cancel Edit</button>
+                    </form>
+                </div>
+
+                <!-- Member Form Panel -->
+                <div id="member-form-card" class="add-card" style="margin-top:20px;">
+                    <h3 id="member-card-title">New Member Entry</h3>
+                    <form method="POST" id="member-html-form">
+                        <input type="hidden" name="action" id="member-action-toggle" value="insert_member">
+                        <input type="hidden" name="member_id" id="member-primary-id" value="">
+                        
+                        <input type="text" name="member_name" id="m-input-name" placeholder="Stage Name" required>
+                        
+                        <div class="custom-multiselect">
+                            <div class="select-box" onclick="toggleCheckboxArea('sidebar-m-list')">
+                                <span id="sidebar-m-label">Assign Group Links</span>
+                            </div>
+                            <div id="sidebar-m-list" class="checkboxes-area">
+                                {% for g in groups %}
+                                <label class="check-item">
+                                    <input type="checkbox" name="group_ids" class="member-form-checkbox" value="{{ g.group_id }}" data-name="{{ g.group_name }}" onchange="refreshLabelCount()">
+                                    {{ g.group_name }}
+                                </label>
+                                {% endfor %}
+                            </div>
                         </div>
-                    </div>
-                    <button type="submit" class="btn-save" style="margin-top:10px;">Create Member</button>
-                </form>
+                        
+                        <button type="submit" class="btn-save" style="margin-top:12px;" id="m-submit-btn">Create Member</button>
+                        <button type="button" class="btn-cancel is-hidden" id="m-cancel-btn" onclick="resetMemberForm()">Cancel Edit</button>
+                    </form>
+                </div>
             </div>
         </aside>
 
         <main class="main-display">
             <div class="display-card">
                 <div class="tabs">
-                    <button class="tab-btn active" onclick="switchTab('g-tab')">Groups</button>
-                    <button class="tab-btn" onclick="switchTab('m-tab')">Members</button>
+                    <button class="tab-btn active" id="btn-tab-g" onclick="executeTabSwitch('g-tab')">Groups Matrix</button>
+                    <button class="tab-btn" id="btn-tab-m" onclick="executeTabSwitch('m-tab')">Members Index</button>
                 </div>
 
-                <div id="g-tab" class="tab-content">
+                <!-- Groups Matrix Tab -->
+                <div id="g-tab" class="tab-content data-view-panel">
                     <table class="gm-table">
-                        <thead><tr><th>Group Name</th><th>Type</th><th>Parent</th><th>Debut</th><th></th></tr></thead>
+                        <thead>
+                            <tr>
+                                <th>Group Name</th>
+                                <th>Type</th>
+                                <th>Parent Entity</th>
+                                <th>Debut Date</th>
+                                <th style="text-align:right;">Control Actions</th>
+                            </tr>
+                        </thead>
                         <tbody>
                             {% for g in groups %}
-                            <tr id="row-g-{{ g.group_id }}">
-                                <form method="POST">
-                                    <input type="hidden" name="action" value="update_group">
-                                    <input type="hidden" name="group_id" value="{{ g.group_id }}">
-                                    <td>
-                                        <span class="v-{{ g.group_id }}">{{ g.group_name }}</span>
-                                        <input type="text" name="group_name" value="{{ g.group_name }}" class="e-{{ g.group_id }} compact-input is-hidden">
-                                    </td>
-                                    <td>
-                                        <span class="v-{{ g.group_id }}">{{ g.grouptype or '—' }}</span>
-                                        <select name="grouptype" class="e-{{ g.group_id }} compact-input is-hidden">
-                                            <option value="bg" {% if g.grouptype == 'bg' %}selected{% endif %}>BG</option>
-                                            <option value="gg" {% if g.grouptype == 'gg' %}selected{% endif %}>GG</option>
-                                            <option value="solo" {% if g.grouptype == 'solo' %}selected{% endif %}>Solo</option>
-                                            <option value="subunit" {% if g.grouptype == 'subunit' %}selected{% endif %}>Subunit</option>
-                                        </select>
-                                    </td>
-                                    <td>
-                                        <span class="v-{{ g.group_id }}">{{ g.parent_name or '—' }}</span>
-                                        <select name="parent_id" class="e-{{ g.group_id }} compact-input is-hidden">
-                                            <option value="">None</option>
-                                            {% for p in groups %}
-                                                {% if p.group_id != g.group_id %}
-                                                <option value="{{ p.group_id }}" {% if p.group_id == g.parent_id %}selected{% endif %}>{{ p.group_name }}</option>
-                                                {% endif %}
-                                            {% endfor %}
-                                        </select>
-                                    </td>
-                                    <td>
-                                        <span class="v-{{ g.group_id }}">{{ g.debutdate or '—' }}</span>
-                                        <input type="date" name="debutdate" value="{{ g.debutdate }}" class="e-{{ g.group_id }} compact-input is-hidden">
-                                    </td>
-                                    <td style="text-align:right;">
-                                        <button type="button" class="btn-outline v-{{ g.group_id }}" onclick="tg('{{ g.group_id }}')">Edit</button>
-                                        <button type="submit" class="btn-save e-{{ g.group_id }} is-hidden" style="width: auto; padding: 4px 12px;">Save</button>
-                                    </td>
-                                </form>
+                            <tr id="data-g-row-{{ g.group_id }}">
+                                <td class="row-g-name" style="font-weight: 700;">{{ g.group_name }}</td>
+                                <td>
+                                    <span class="table-badge {% if g.grouptype %}{{ g.grouptype }}-type{% endif %}">
+                                        {{ g.grouptype or '—' }}
+                                    </span>
+                                </td>
+                                <td>{{ g.parent_name or '' }}</td>
+                                <td style="font-family: 'JetBrains Mono', monospace; font-size: 0.85rem;">{{ g.debutdate or '—' }}</td>
+                                <td style="text-align:right;">
+                                    <button type="button" class="btn-outline" 
+                                            onclick="populateGroupEdit('{{ g.group_id }}', '{{ g.group_name|escape }}', '{{ g.grouptype or '' }}', '{{ g.parent_id or '' }}', '{{ g.debutdate or '' }}')">
+                                        Edit
+                                    </button>
+                                </td>
                             </tr>
                             {% endfor %}
                         </tbody>
                     </table>
                 </div>
 
-                <div id="m-tab" class="tab-content is-hidden">
+                <!-- Members Index Tab -->
+                <div id="m-tab" class="tab-content data-view-panel is-hidden">
                     <table class="gm-table">
-                        <thead><tr><th>Name</th><th>Group Assignments</th><th></th></tr></thead>
+                        <thead>
+                            <tr>
+                                <th>Stage Name</th>
+                                <th>Active Group Affiliations</th>
+                                <th style="text-align:right;">Control Actions</th>
+                            </tr>
+                        </thead>
                         <tbody>
                             {% for m in members %}
-                            <tr id="row-m-{{ m.member_id }}">
-                                <form method="POST">
-                                    <input type="hidden" name="action" value="update_member">
-                                    <input type="hidden" name="member_id" value="{{ m.member_id }}">
-                                    <td>
-                                        <span class="vm-{{ m.member_id }}">{{ m.member_name }}</span>
-                                        <input type="text" name="member_name" value="{{ m.member_name }}" class="em-{{ m.member_id }} compact-input is-hidden">
-                                    </td>
-                                    <td>
-                                        <span class="vm-{{ m.member_id }}">{{ m.current_groups or '—' }}</span>
-                                        <div class="custom-multiselect em-{{ m.member_id }} is-hidden">
-                                            <div class="select-box" onclick="toggleArea('mlist-{{ m.member_id }}')">
-                                                <span id="mlabel-{{ m.member_id }}">Modify Groups</span>
-                                            </div>
-                                            <div id="mlist-{{ m.member_id }}" class="checkboxes-area">
-                                                {% set active_ids = m.current_group_ids.split(',') if m.current_group_ids else [] %}
-                                                {% for g in groups %}
-                                                <label class="check-item">
-                                                    <input type="checkbox" name="group_ids" value="{{ g.group_id }}" {% if g.group_id|string in active_ids %}checked{% endif %} onchange="updateLabel('mlist-{{ m.member_id }}', 'mlabel-{{ m.member_id }}')">{{ g.group_name }}
-                                                </label>
-                                                {% endfor %}
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td style="text-align:right;">
-                                        <button type="button" class="btn-outline vm-{{ m.member_id }}" onclick="tgm('{{ m.member_id }}')">Edit</button>
-                                        <button type="submit" class="btn-save em-{{ m.member_id }} is-hidden" style="width: auto; padding: 4px 12px;">Save</button>
-                                    </td>
-                                </form>
+                            <tr id="data-m-row-{{ m.member_id }}">
+                                <td class="row-m-name" style="font-weight: 700;">{{ m.member_name }}</td>
+                                <td style="color: #c2410c; font-weight: 600;">{{ m.current_groups or '—' }}</td>
+                                <td style="text-align:right;">
+                                    <button type="button" class="btn-outline"
+                                            onclick="populateMemberEdit('{{ m.member_id }}', '{{ m.member_name|escape }}', '{{ m.current_group_ids or '' }}')">
+                                        Edit
+                                    </button>
+                                </td>
                             </tr>
                             {% endfor %}
                         </tbody>
                     </table>
                 </div>
+
             </div>
         </main>
     </div>
 </div>
 
 <script>
-    function toggleArea(id) {
+    // Global active view state tracking
+    let currentActiveTabId = "g-tab";
+
+    function toggleCheckboxArea(id) {
         const el = document.getElementById(id);
-        const isOpen = el.style.display === 'block';
-        document.querySelectorAll('.checkboxes-area').forEach(a => a.style.display = 'none');
-        el.style.display = isOpen ? 'none' : 'block';
+        const originallyOpen = el.style.display === 'block';
+        document.querySelectorAll('.checkboxes-area').forEach(box => box.style.display = 'none');
+        el.style.display = originallyOpen ? 'none' : 'block';
     }
 
-    function updateLabel(listId, labelId) {
-        const count = document.getElementById(listId).querySelectorAll('input:checked').length;
-        document.getElementById(labelId).innerText = count > 0 ? count + " Selected" : "Select Groups";
+    function refreshLabelCount() {
+        const checkedBoxes = document.querySelectorAll('.member-form-checkbox:checked');
+        const label = document.getElementById('sidebar-m-label');
+        label.innerText = checkedBoxes.length > 0 ? checkedBoxes.length + " Groups Linked" : "Assign Group Links";
     }
 
-    function tg(id) { document.querySelectorAll(`.v-${id}, .e-${id}`).forEach(el => el.classList.toggle('is-hidden')); }
-    function tgm(id) { document.querySelectorAll(`.vm-${id}, .em-${id}`).forEach(el => el.classList.toggle('is-hidden')); }
-
-    function switchTab(id) {
+    function executeTabSwitch(tabId) {
+        currentActiveTabId = tabId;
         document.querySelectorAll('.tab-content').forEach(c => c.classList.add('is-hidden'));
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        document.getElementById(id).classList.remove('is-hidden');
-        event.currentTarget.classList.add('active');
+        
+        document.getElementById(tabId).classList.remove('is-hidden');
+        if (tabId === 'g-tab') document.getElementById('btn-tab-g').classList.add('active');
+        if (tabId === 'm-tab') document.getElementById('btn-tab-m').classList.add('active');
+
+        // Re-run search filter on tab switch
+        filterTable();
     }
 
-    window.onclick = e => { if (!e.target.closest('.custom-multiselect')) document.querySelectorAll('.checkboxes-area').forEach(a => a.style.display = 'none'); };
+    // --- INTERACTIVE DRIVER POPULATION: GROUP ACTION ENGINE ---
+    function populateGroupEdit(id, name, type, parentId, debutDate) {
+        document.querySelectorAll('.gm-table tbody tr').forEach(r => r.classList.remove('row-active-edit'));
+        const activeRow = document.getElementById(`data-g-row-${id}`);
+        if (activeRow) activeRow.classList.add('row-active-edit');
+
+        const card = document.getElementById('group-form-card');
+        card.classList.add('editing-mode');
+        document.getElementById('group-card-title').innerText = "Modify Group Context";
+        document.getElementById('group-action-toggle').value = "update_group";
+        document.getElementById('group-primary-id').value = id;
+
+        document.getElementById('g-input-name').value = name;
+        document.getElementById('g-input-type').value = type;
+        document.getElementById('g-input-parent').value = parentId;
+        document.getElementById('g-input-debut').value = debutDate;
+
+        document.getElementById('g-submit-btn').innerText = "Apply Group Overrides";
+        document.getElementById('g-cancel-btn').classList.remove('is-hidden');
+        
+        window.scrollTo({ top: card.offsetTop - 20, behavior: 'smooth' });
+    }
+
+    function resetGroupForm() {
+        document.querySelectorAll('.gm-table tbody tr').forEach(r => r.classList.remove('row-active-edit'));
+        document.getElementById('group-form-card').classList.remove('editing-mode');
+        document.getElementById('group-html-form').reset();
+        
+        document.getElementById('group-card-title').innerText = "New Group Entry";
+        document.getElementById('group-action-toggle').value = "insert_group";
+        document.getElementById('group-primary-id').value = "";
+        document.getElementById('g-submit-btn').innerText = "Create Group";
+        document.getElementById('g-cancel-btn').classList.add('is-hidden');
+    }
+
+    // --- INTERACTIVE DRIVER POPULATION: MEMBER ACTION ENGINE ---
+    function populateMemberEdit(id, name, groupIdsCsv) {
+        document.querySelectorAll('.gm-table tbody tr').forEach(r => r.classList.remove('row-active-edit'));
+        const activeRow = document.getElementById(`data-m-row-${id}`);
+        if (activeRow) activeRow.classList.add('row-active-edit');
+
+        const card = document.getElementById('member-form-card');
+        card.classList.add('editing-mode');
+        document.getElementById('member-card-title').innerText = "Modify Member Context";
+        document.getElementById('member-action-toggle').value = "update_member";
+        document.getElementById('member-primary-id').value = id;
+
+        document.getElementById('m-input-name').value = name;
+
+        const activeArray = groupIdsCsv ? groupIdsCsv.split(',') : [];
+        document.querySelectorAll('.member-form-checkbox').forEach(box => {
+            box.checked = activeArray.includes(box.value.toString());
+        });
+
+        refreshLabelCount();
+        document.getElementById('m-submit-btn').innerText = "Apply Member Overrides";
+        document.getElementById('m-cancel-btn').classList.remove('is-hidden');
+
+        window.scrollTo({ top: card.offsetTop - 20, behavior: 'smooth' });
+    }
+
+    function resetMemberForm() {
+        document.querySelectorAll('.gm-table tbody tr').forEach(r => r.classList.remove('row-active-edit'));
+        document.getElementById('member-form-card').classList.remove('editing-mode');
+        document.getElementById('member-html-form').reset();
+        
+        document.getElementById('member-card-title').innerText = "New Member Entry";
+        document.getElementById('member-action-toggle').value = "insert_member";
+        document.getElementById('member-primary-id').value = "";
+        document.querySelectorAll('.member-form-checkbox').forEach(b => b.checked = false);
+        
+        refreshLabelCount();
+        document.getElementById('m-submit-btn').innerText = "Create Member";
+        document.getElementById('m-cancel-btn').classList.add('is-hidden');
+    }
+
+    // Client-side table search filter engine
+    function filterTable() {
+        const query = document.getElementById('client-search').value.toLowerCase().trim();
+        const activeRows = document.querySelectorAll(`#${currentActiveTabId} tbody tr`);
+        
+        activeRows.forEach(row => {
+            const nameEl = row.querySelector('.row-g-name') || row.querySelector('.row-m-name');
+            if (nameEl) {
+                const matchName = nameEl.innerText.toLowerCase();
+                row.style.display = matchName.includes(query) ? '' : 'none';
+            }
+        });
+    }
+
+    // Intercept clicks outside multiselect dropdowns
+    window.onclick = event => {
+        if (!event.target.closest('.custom-multiselect')) {
+            document.querySelectorAll('.checkboxes-area').forEach(box => box.style.display = 'none');
+        }
+    };
 </script>
 {% endblock %}
