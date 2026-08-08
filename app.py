@@ -888,21 +888,28 @@ def sorttimeline():
 
     if IS_PORTFOLIO:
         videos = load_portfolio_data('video')
-        # emulate the WHERE constraint
+        
+        # 1. First, restrict to ONLY 'undecided' videos
         filtered = [v for v in videos if v.get('webstatus') == 'undecided']
 
-        # emulate distinct database configuration loops for unique sidebar tabs
-        years = sorted(list(set(v['releaseDate'][:4] for v in videos if v.get('releaseDate'))), reverse=True)
+        # 2. Extract years ONLY from those 'undecided' videos
+        years = sorted(list(set(v['releaseDate'][:4] for v in filtered if v.get('releaseDate'))), reverse=True)
         
+        # 3. Apply year/month UI filters
         if selected_year != 'all':
             filtered = [v for v in filtered if v.get('releaseDate', '').startswith(selected_year)]
         if selected_month != 'all' and selected_year != 'all':
-            # check string index match for format 'YYYY-MM-DD'
             filtered = [v for v in filtered if v.get('releaseDate', '')[5:7] == selected_month.zfill(2)]
             
-        return render_template('admsorttimeline.html', videos=filtered[:100], shows=load_portfolio_data('showtitle'), 
-                               years=years, selected_year=selected_year, selected_month=selected_month)
-
+        return render_template(
+            'admsorttimeline.html', 
+            videos=filtered[:100], 
+            shows=load_portfolio_data('showtitle'), 
+            years=years, 
+            selected_year=selected_year, 
+            selected_month=selected_month
+        )
+    
     cursor = con.get_db()
     if not cursor:
         return render_template('admsorttimeline.html', videos=[], shows=[], years=[], selected_year='all', selected_month='all')
