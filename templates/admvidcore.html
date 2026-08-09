@@ -1,0 +1,254 @@
+{% extends "admbase.html" %}
+
+{% block title %}Video Management{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='admvidcore.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="core-header">
+    <h1 class="core-title">Video Management</h1>
+    <span style="color: var(--text-muted); font-weight: 600;">
+        Total Records: {{ total_items }}
+    </span>
+</div>
+
+<!-- Controls Card -->
+<div class="controls-card">
+    <form method="GET" action="{{ url_for('videocore') }}" class="controls-form">
+        <input 
+            type="text" 
+            name="q" 
+            class="search-input" 
+            placeholder="Search by Video ID, Title, or Show Title..."
+            value="{{ search_q }}"
+        >
+
+        <select name="status" class="select-control">
+            <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Webstatuses</option>
+            <option value="show" {% if status_filter == 'show' %}selected{% endif %}>Status: show</option>
+            <option value="timeline" {% if status_filter == 'timeline' %}selected{% endif %}>Status: timeline</option>
+            <option value="ghost" {% if status_filter == 'ghost' %}selected{% endif %}>Status: ghost</option>
+            <option value="archived" {% if status_filter == 'archived' %}selected{% endif %}>Status: archived</option>
+            <option value="undecided" {% if status_filter == 'undecided' %}selected{% endif %}>Status: undecided</option>
+        </select>
+
+        <select name="sort" class="select-control">
+            <option value="video_id" {% if sort_by == 'video_id' %}selected{% endif %}>Sort by ID</option>
+            <option value="releaseDate" {% if sort_by == 'releaseDate' %}selected{% endif %}>Sort by Release Date</option>
+            <option value="video_title" {% if sort_by == 'video_title' %}selected{% endif %}>Sort by Video Title</option>
+            <option value="showtitle" {% if sort_by == 'showtitle' %}selected{% endif %}>Sort by Show Title</option>
+        </select>
+
+        <select name="order" class="select-control">
+            <option value="DESC" {% if order == 'DESC' %}selected{% endif %}>Descending</option>
+            <option value="ASC" {% if order == 'ASC' %}selected{% endif %}>Ascending</option>
+        </select>
+
+        <button type="submit" class="btn btn-primary">Apply</button>
+        {% if search_q or sort_by != 'video_id' or order != 'DESC' or status_filter != 'all' %}
+            <a href="{{ url_for('videocore') }}" class="btn btn-secondary" style="text-decoration:none;">Reset</a>
+        {% endif %}
+    </form>
+</div>
+
+<!-- Main Table -->
+<div class="table-container">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th style="width: 80px;">ID</th>
+                <th>Video Title</th>
+                <th style="width: 120px;">Release Date</th>
+                <th>Assigned Show Title(s)</th>
+                <th style="width: 140px;">Webstatus</th>
+                <th style="width: 90px; text-align: center;">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% if videos %}
+                {% for v in videos %}
+                <tr id="row-{{ v.video_id }}">
+                    <td><strong>#{{ v.video_id }}</strong></td>
+                    <td>{{ v.video_title or 'Untitled Video' }}</td>
+                    <td>{{ v.releaseDate or '' }}</td>
+                    <td>
+                        <div id="shows-container-{{ v.video_id }}">
+                            {% if v.show_titles %}
+                                {% for st in v.show_titles.split(', ') %}
+                                    <span class="show-badge">{{ st }}</span>
+                                {% endfor %}
+                            {% else %}
+                                <span style="color: var(--text-muted); font-style: italic; font-size: 0.85rem;">None</span>
+                            {% endif %}
+                        </div>
+                        <button class="edit-shows-btn" onclick="openShowModal({{ v.video_id }}, '{{ v.show_title_ids or '' }}')">
+                            Edit Shows
+                        </button>
+                    </td>
+                    <td>
+                        <select 
+                            class="status-select status-{{ v.webstatus or 'undecided' }}" 
+                            onchange="updateWebstatus({{ v.video_id }}, this)"
+                        >
+                            <option value="show" {% if v.webstatus == 'show' %}selected{% endif %}>show</option>
+                            <option value="timeline" {% if v.webstatus == 'timeline' %}selected{% endif %}>timeline</option>
+                            <option value="ghost" {% if v.webstatus == 'ghost' %}selected{% endif %}>ghost</option>
+                            <option value="archived" {% if v.webstatus == 'archived' %}selected{% endif %}>archived</option>
+                            <option value="undecided" {% if v.webstatus == 'undecided' or not v.webstatus %}selected{% endif %}>undecided</option>
+                        </select>
+                    </td>
+                    <td style="text-align: center;">
+                        <button class="btn btn-danger" onclick="deleteVideo({{ v.video_id }})">Delete</button>
+                    </td>
+                </tr>
+                {% endfor %}
+            {% else %}
+                <tr>
+                    <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 30px;">
+                        No videos found matching your criteria.
+                    </td>
+                </tr>
+            {% endif %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Pagination Bar -->
+{% if total_pages > 1 %}
+<div class="pagination-bar">
+    <span style="color: var(--text-muted); font-size: 0.9rem;">
+        Showing page <strong>{{ page }}</strong> of <strong>{{ total_pages }}</strong>
+    </span>
+    <div class="pagination-controls">
+        {% if page > 1 %}
+            <a href="{{ url_for('videocore', page=page-1, q=search_q, sort=sort_by, order=order, status=status_filter) }}" class="page-link">Prev</a>
+        {% endif %}
+
+        {% for p in range(1, total_pages + 1) %}
+            {% if p == page %}
+                <span class="page-link active">{{ p }}</span>
+            {% elif p <= 3 or p >= total_pages - 2 or (p >= page - 1 and p <= page + 1) %}
+                <a href="{{ url_for('videocore', page=p, q=search_q, sort=sort_by, order=order, status=status_filter) }}" class="page-link">{{ p }}</a>
+            {% elif p == 4 or p == total_pages - 3 %}
+                <span class="page-link" style="border:none; background:none;">...</span>
+            {% endif %}
+        {% endfor %}
+
+        {% if page < total_pages %}
+            <a href="{{ url_for('videocore', page=page+1, q=search_q, sort=sort_by, order=order, status=status_filter) }}" class="page-link">Next</a>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Assign Showtitle Modal -->
+<div class="modal-overlay" id="showModal">
+    <div class="modal-card">
+        <div class="modal-header">Assign Show Titles</div>
+        <input type="hidden" id="modalVideoId">
+        <div class="shows-checkbox-list">
+            {% for s in all_shows %}
+                <label class="shows-checkbox-item">
+                    <input type="checkbox" class="show-modal-cb" value="{{ s.title_id }}" id="cb-show-{{ s.title_id }}">
+                    <span>{{ s.title }}</span>
+                </label>
+            {% endfor %}
+        </div>
+        <div class="modal-actions">
+            <button class="btn btn-secondary" onclick="closeShowModal()">Cancel</button>
+            <button class="btn btn-primary" onclick="saveShowTitles()">Save Changes</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    function updateWebstatus(videoId, selectElem) {
+        const newStatus = selectElem.value;
+        selectElem.className = `status-select status-${newStatus}`;
+
+        fetch('/api/video/action', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'update_status',
+                video_id: videoId,
+                webstatus: newStatus
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (!data.success) {
+                alert('Error updating status: ' + (data.error || 'Unknown error'));
+            }
+        })
+        .catch(err => console.error(err));
+    }
+
+    function openShowModal(videoId, currentTitleIdsStr) {
+        document.getElementById('modalVideoId').value = videoId;
+        const currentIds = currentTitleIdsStr ? currentTitleIdsStr.split(',').map(id => id.trim()) : [];
+
+        document.querySelectorAll('.show-modal-cb').forEach(cb => {
+            cb.checked = currentIds.includes(cb.value);
+        });
+
+        document.getElementById('showModal').style.display = 'flex';
+    }
+
+    function closeShowModal() {
+        document.getElementById('showModal').style.display = 'none';
+    }
+
+    function saveShowTitles() {
+        const videoId = document.getElementById('modalVideoId').value;
+        const selectedCbs = document.querySelectorAll('.show-modal-cb:checked');
+        const selectedIds = Array.from(selectedCbs).map(cb => parseInt(cb.value));
+
+        fetch('/api/video/action', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'update_shows',
+                video_id: parseInt(videoId),
+                title_ids: selectedIds
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error saving show titles: ' + data.error);
+            }
+        })
+        .catch(err => console.error(err));
+    }
+
+    function deleteVideo(videoId) {
+        if (!confirm(`Are you sure you want to delete video #${videoId}? This action cannot be undone.`)) {
+            return;
+        }
+
+        fetch('/api/video/action', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'delete_video',
+                video_id: videoId
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                const row = document.getElementById(`row-${videoId}`);
+                if (row) row.remove();
+            } else {
+                alert('Error deleting video: ' + data.error);
+            }
+        })
+        .catch(err => console.error(err));
+    }
+</script>
+{% endblock %}

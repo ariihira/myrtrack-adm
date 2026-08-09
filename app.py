@@ -21,6 +21,7 @@ try:
     import backend.admchrono as chrono
     import backend.admtimeline as time
     import backend.admentities as entity
+    import backend.admvidcore as vidcore
 
 except ImportError as e:
     print("\n" + "!"*60)
@@ -875,6 +876,68 @@ def get_batch_relations(letter, video_id):
         
     finally:
         cursor.close()
+
+
+
+# ====================================================================
+# VIDEO MANAGEMENT
+# ====================================================================
+
+@app.route('/manage/videos')
+def videocore():
+    page = request.args.get('page', 1, type=int)
+    search_q = request.args.get('q', '').strip()
+    sort_by = request.args.get('sort', 'video_id')
+    order = request.args.get('order', 'DESC').upper()
+    status_filter = request.args.get('status', 'all').lower()
+
+    if IS_PORTFOLIO:
+        data = vidcore.fetch_core_videos_portfolio(
+            page=page,
+            search_q=search_q,
+            sort_by=sort_by,
+            order=order,
+            status_filter=status_filter,
+            limit=50
+        )
+    else:
+        # Call live database business logic layer
+        data = vidcore.fetch_core_videos(
+            page=page, 
+            search_q=search_q, 
+            sort_by=sort_by, 
+            order=order, 
+            status_filter=status_filter,
+            limit=50
+        )
+
+    return render_template(
+        'admvidcore.html', videos=data['videos'],
+        all_shows=data['all_shows'], page=page,
+        total_pages=data['total_pages'], total_items=data['total_items'],
+        search_q=search_q, sort_by=sort_by, 
+        order=order, status_filter=status_filter
+    )
+
+@app.route('/api/video/action', methods=['POST'])
+def core_video_action():
+    payload = request.get_json() or {}
+    action = payload.get('action')
+    video_id = payload.get('video_id')
+
+    if not video_id:
+        return jsonify(success=False, error="Missing video ID"), 400
+
+    if IS_PORTFOLIO:
+        # Sandbox mode simulation
+        return jsonify(success=True, message="Demo Mode: Video action simulated successfully.")
+
+    # Call business logic layer for live database
+    success, error_msg = vidcore.process_video_action(action, video_id, payload)
+
+    if success:
+        return jsonify(success=True)
+    return jsonify(success=False, error=error_msg), 500
 
 
 # ====================================================================
