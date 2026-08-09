@@ -4,6 +4,8 @@ from typing import Any
 from collections import OrderedDict
 from datetime import datetime
 
+from backend.admhelper import load_portfolio_data, init_portfolio_middleware
+
 
 # ====================================================================
 # DATABASE CONNECTION GUARD & SETUP
@@ -33,77 +35,8 @@ except ImportError as e:
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev_secret_key_123")
 
-# Inject mode into all templates automatically
-@app.context_processor
-def inject_portfolio_status():
-    return dict(is_portfolio=IS_PORTFOLIO)
-
-@app.template_filter('format_date')
-def format_date_filter(value, format_string='%Y-%m-%d'):
-    """Safely formats both SQL date objects and Portfolio string dates in HTML."""
-    if not value:
-        return ""
-    
-    # if it's already a string (portfolio mode), convert it to a date first
-    if isinstance(value, str):
-        try:
-            # adjust '%Y-%m-%d' if JSON strings use a different pattern
-            return datetime.strptime(value.split()[0], '%Y-%m-%d').strftime(format_string)
-        except ValueError:
-            return value # fallback to raw text if parsing fails
-            
-    # if it's a real datetime/date object (local mode)
-    try:
-        return value.strftime(format_string)
-    except AttributeError:
-        return str(value)
-
-
-@app.before_request
-def handle_portfolio_intercepts():
-    """
-    Global interceptor for Portfolio Staging Mode.
-    Ensures active local database pings, or safely mocks POST endpoints to keep UI alive.
-    """
-    # if live online, intercept write routes to act as a secure Admin Sandbox
-    if IS_PORTFOLIO:
-        if request.method == "POST":
-            if request.is_json:
-                return jsonify({"success": True, "message": "Demo Mode: Changes simulated successfully."})
-            flash("Sandbox Mode: Structural edits are simulated without modifications.", "success")
-            return redirect(request.path)
-        return  # allow standard GET requests to fallback to reading template assets
-
-    # local mode: keep database connection alive across background lifecycles
-    if db and getattr(db, 'connection', None):
-        try:
-            db.connection.ping(reconnect=True)
-        except Exception:
-            try:
-                db.connection = db.create_connection()
-            except Exception:
-                pass
-
-def load_portfolio_data(key=None):
-    """
-    Helper to read data from the frozen data.json snapshot file during Portfolio Mode.
-    """
-
-    try:
-        # assumes data.json lives in root workspace folder
-        with open('data.json', 'r', encoding='utf-8') as f:
-            data = json.load(f)
-            raw_list = data.get(key, []) if key else data
-            
-            # If the rows come back as raw lists instead of dicts, map them to explicit dict profiles
-            if raw_list and isinstance(raw_list, list) and isinstance(raw_list[0], list):
-                if key == 'songs':
-                    return [{'song_id': r[0], 'songtitle': r[1], 'artist': r[2], 'album': r[3]} for r in raw_list]
-                if key == 'showtitle':
-                    return [{'title_id': r[0], 'title': r[1], 'releaseYear': r[2]} for r in raw_list]
-            return raw_list
-    except Exception:
-        return []
+# Register context processors, template filters, and before_request interceptors
+init_portfolio_middleware(app, db)
 
 
 # ====================================================================

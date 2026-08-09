@@ -1,32 +1,21 @@
-import os, json, math
+import os, math
+import db_connect
 from backend.connection import get_db
-
+from backend.admhelper import load_portfolio_data
 
 # Local environment evaluation to avoid circular import issues with app.py
 raw_env = os.environ.get('PORTFOLIO_MODE', 'NOT_SET')
 IS_PORTFOLIO = raw_env.lower() in ('true', '1', 't')
 
-_PORTFOLIO_CACHE = None
-
-def _load_portfolio_data(key=None):
-    global _PORTFOLIO_CACHE
-    try:
-        if _PORTFOLIO_CACHE is None:
-            with open('data.json', 'r', encoding='utf-8') as f:
-                _PORTFOLIO_CACHE = json.load(f)
-        data = _PORTFOLIO_CACHE
-        return data.get(key, []) if key else data
-    except Exception:
-        return []
 
 def fetch_core_videos_portfolio(page=1, search_q='', sort_by='video_id', order='DESC', status_filter='all', limit=50):
     """
     Simulates SQL filtering, GROUP_CONCAT joins, dynamic sorting, 
     and pagination using data.json snapshot for Portfolio Mode.
     """
-    raw_videos = _load_portfolio_data('video')
-    raw_junction = _load_portfolio_data('video_showtitle')
-    raw_shows = _load_portfolio_data('showtitle')
+    raw_videos = load_portfolio_data('video')
+    raw_junction = load_portfolio_data('video_showtitle')
+    raw_shows = load_portfolio_data('showtitle')
 
     # Build reference lookup mapping for shows
     shows_by_id = {str(s.get('title_id')): s.get('title', '') for s in raw_shows if s.get('title_id')}
@@ -228,10 +217,10 @@ def process_video_action(action, video_id, data):
         else:
             return False, "Invalid action specified"
 
-        connection.commit()
+        db_connect.connection.commit()
         return True, None
     except Exception as e:
-        connection.rollback()
+        db_connect.connection.rollback()
         return False, str(e)
     finally:
         cursor.close()
