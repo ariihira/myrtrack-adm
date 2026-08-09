@@ -325,47 +325,12 @@ def entitymc():
                                shows=load_portfolio_data('showtitle'), 
                                members=load_portfolio_data('members'))
     
-    cursor = con.get_db()
-    if not cursor:
-        return render_template('admentitymc.html', pairings=[], shows=[], members=[])
-
     try:
-        # main display table
-        cursor.execute("""
-            SELECT mc.mc_id, mc.mc_pairname, st.title, st.title_id,
-                   GROUP_CONCAT(m.member_name SEPARATOR ', ') AS member_names,
-                   GROUP_CONCAT(m.member_id SEPARATOR ',') AS member_ids
-            FROM musicshowmc mc
-            LEFT JOIN mushow_mcs mm ON mc.mc_id = mm.mc_id
-            LEFT JOIN showtitle st ON mm.mushow_id = st.title_id
-            LEFT JOIN mc_members mcm ON mc.mc_id = mcm.mc_id
-            LEFT JOIN members m ON mcm.member_id = m.member_id
-            GROUP BY mc.mc_id, mc.mc_pairname, st.title, st.title_id
-            ORDER BY mc.mc_pairname ASC
-        """)
-        pairings = cursor.fetchall()
-
-        # music shows dropdown
-        cursor.execute("SELECT title_id, title FROM showtitle WHERE title_id IN (1,2,3,4,5,6) ORDER BY title")
-        shows = cursor.fetchall()
-
-        # flattened members dropdown
-        cursor.execute("""
-            SELECT m.member_id, m.member_name, g.group_name
-            FROM members m
-            JOIN member_groups mg ON m.member_id = mg.member_id
-            JOIN kgroups g ON mg.group_id = g.group_id
-            ORDER BY m.member_name ASC, g.group_name ASC
-        """)
-        members = cursor.fetchall()
-
+        pairings, shows, members = entity.fetch_mc_data()
         return render_template('admentitymc.html', pairings=pairings, shows=shows, members=members)
-
+    
     except Exception:
         return render_template('admentitymc.html', pairings=[], shows=[], members=[])
-
-    finally:
-        cursor.close()
 
 @app.route('/entityL', methods=['GET', 'POST'])
 def entityl():

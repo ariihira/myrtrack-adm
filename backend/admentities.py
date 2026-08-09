@@ -179,71 +179,121 @@ def update_member_groups(member_id, data):
 
 #entity MC
 
+def fetch_mc_data():
+    """
+    Fetches MC pairings, target music shows, and flattened member options.
+    """
+    cursor = get_db()
+    if not cursor:
+        return [], [], []
+
+    try:
+        # 1. Main Display Table
+        cursor.execute("""
+            SELECT mc.mc_id, mc.mc_pairname, st.title, st.title_id,
+                   GROUP_CONCAT(m.member_name SEPARATOR ', ') AS member_names,
+                   GROUP_CONCAT(m.member_id SEPARATOR ',') AS member_ids
+            FROM musicshowmc mc
+            LEFT JOIN mushow_mcs mm ON mc.mc_id = mm.mc_id
+            LEFT JOIN showtitle st ON mm.mushow_id = st.title_id
+            LEFT JOIN mc_members mcm ON mc.mc_id = mcm.mc_id
+            LEFT JOIN members m ON mcm.member_id = m.member_id
+            GROUP BY mc.mc_id, mc.mc_pairname, st.title, st.title_id
+            ORDER BY mc.mc_pairname ASC
+        """)
+        pairings = cursor.fetchall()
+
+        # 2. Filtered Shows (Only IDs 1, 2, 3, 4, 5, 6)
+        cursor.execute("SELECT title_id, title FROM showtitle WHERE title_id IN (1,2,3,4,5,6) ORDER BY title")
+        shows = cursor.fetchall()
+
+        # 3. Flattened Members (Member Name + Group Name)
+        cursor.execute("""
+            SELECT m.member_id, m.member_name, g.group_name
+            FROM members m
+            JOIN member_groups mg ON m.member_id = mg.member_id
+            JOIN kgroups g ON mg.group_id = g.group_id
+            ORDER BY m.member_name ASC, g.group_name ASC
+        """)
+        members = cursor.fetchall()
+
+        return pairings, shows, members
+
+    except Exception:
+        return [], [], []
+
+    finally:
+        cursor.close()
+
+
 def insert_mc_pair(data):
     """
-    Creates a new MC pair profile and maps show and relational member records.
+    Inserts a new MC pair, links to a show, and attaches members.
     """
     cursor = get_db()
     if not cursor:
         return False
-    
+
     try:
-        # insert pair name
+        # 1. Insert Pair Name
         cursor.execute("INSERT INTO musicshowmc (mc_pairname) VALUES (%s)", (data['pairname'],))
         mc_id = cursor.lastrowid
         
-        # link to mushow
+        # 2. Link to Show
         if data.get('title_id'):
             cursor.execute("INSERT INTO mushow_mcs (mushow_id, mc_id) VALUES (%s, %s)", 
                            (data['title_id'], mc_id))
         
-        # link members (multiple)
+        # 3. Link Members (Multiple)
         member_ids = data.getlist('member_ids')
         for m_id in member_ids:
-            cursor.execute("INSERT INTO mc_members (mc_id, member_id) VALUES (%s, %s)", (mc_id, m_id))
+            if m_id:
+                cursor.execute("INSERT INTO mc_members (mc_id, member_id) VALUES (%s, %s)", (mc_id, m_id))
         
         db_connect.connection.commit()
         return True
-        
+
     except Exception:
         db_connect.connection.rollback()
         return False
-        
+
     finally:
         cursor.close()
 
+
 def update_mc_full(mc_id, data):
     """
-    Updates MC group naming and completely rebuilds show and member links.
+    Updates MC pair name and re-links associated show and member records.
     """
     cursor = get_db()
     if not cursor:
         return False
-    
+
     try:
-        # update name
+        # 1. Update Name
         cursor.execute("UPDATE musicshowmc SET mc_pairname = %s WHERE mc_id = %s", 
                        (data['pairname'], mc_id))
         
-        # update mushow link (clear and re-insert)
+        # 2. Update Show Link (Clear and Re-insert)
         cursor.execute("DELETE FROM mushow_mcs WHERE mc_id = %s", (mc_id,))
         if data.get('title_id'):
             cursor.execute("INSERT INTO mushow_mcs (mushow_id, mc_id) VALUES (%s, %s)", 
                            (data['title_id'], mc_id))
         
-        # update member links (clear and re-insert)
+        # 3. Update Member Links (Clear and Re-insert)
         cursor.execute("DELETE FROM mc_members WHERE mc_id = %s", (mc_id,))
         member_ids = data.getlist('member_ids')
         for m_id in member_ids:
-            cursor.execute("INSERT INTO mc_members (mc_id, member_id) VALUES (%s, %s)", (mc_id, m_id))
+            if m_id:
+                cursor.execute("INSERT INTO mc_members (mc_id, member_id) VALUES (%s, %s)", (mc_id, m_id))
         
         db_connect.connection.commit()
         return True
-        
+
     except Exception:
         db_connect.connection.rollback()
         return False
-        
+
     finally:
         cursor.close()
 
