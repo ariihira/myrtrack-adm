@@ -320,9 +320,13 @@ def entitymc():
         return redirect(url_for('entitymc'))
     
     if IS_PORTFOLIO:
+        raw_shows = load_portfolio_data('showtitle')
+        allowed_ids = {1, 2, 3, 4, 5, 6, "1", "2", "3", "4", "5", "6"}
+        filtered_shows = [s for s in raw_shows if s.get('title_id') in allowed_ids]
+
         return render_template('admentitymc.html', 
                                pairings=load_portfolio_data('mc_pairings'), 
-                               shows=load_portfolio_data('showtitle'), 
+                               shows=filtered_shows, 
                                members=load_portfolio_data('members'))
     
     try:
