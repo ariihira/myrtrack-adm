@@ -1,8 +1,15 @@
 import json
 import os
 import sys
+from dotenv import load_dotenv
+
+load_dotenv(override=True)
+
+os.environ['PORTFOLIO_MODE'] = 'false'
 
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
+
+import db_connect
 import backend.connection as con
 
 def freeze_entire_database():
